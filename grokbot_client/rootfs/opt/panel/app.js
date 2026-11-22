@@ -3,15 +3,9 @@
 
   var statusEl = document.getElementById("status");
   var accountEl = document.getElementById("account");
-  var block = document.getElementById("signin-block");
   var link = document.getElementById("signin-link");
-  var start = document.getElementById("signin-start");
-  var signout = document.getElementById("signout");
   var qr = document.getElementById("qr");
-  var urlInput = document.getElementById("login-url");
-  var detailEl = document.getElementById("detail");
-  var errorEl = document.getElementById("error");
-  var versionEl = document.getElementById("version");
+  var signout = document.getElementById("signout");
   var lastUrl = "";
 
   function show(el, on) {
@@ -22,35 +16,22 @@
     var state = data.state || "";
     var url = data.login_url || "";
     var connected = state === "connected" || state === "restarting";
-    var waiting = state === "waiting" && url;
+    var waiting = Boolean(url) && !connected;
 
     statusEl.textContent = data.status || "Starting";
-    accountEl.textContent = data.email ? "Account " + data.email : "";
-    show(accountEl, Boolean(data.email) && connected);
-    detailEl.textContent = data.detail || "";
-    show(detailEl, Boolean(data.detail));
-    errorEl.textContent = data.error || "";
-    show(errorEl, Boolean(data.error));
-    versionEl.textContent = data.version ? "Client " + data.version : "";
-
-    show(block, waiting);
+    accountEl.textContent = data.email || "";
+    show(accountEl, connected && Boolean(data.email));
+    show(link, waiting);
+    show(qr, waiting);
     if (waiting) {
       link.href = url;
-      urlInput.value = url;
+      link.textContent = url;
       if (url !== lastUrl) {
         qr.src = "qr.svg?u=" + encodeURIComponent(url);
         lastUrl = url;
       }
     }
-    show(qr, waiting);
-    show(start, state === "signed_out" || state === "starting");
-    show(signout, waiting || connected);
-  }
-
-  function post(path) {
-    start.hidden = true;
-    signout.disabled = true;
-    fetch(path, { method: "POST", headers: { "X-Grokbot-Panel": "1" } }).finally(refresh);
+    show(signout, connected);
   }
 
   function refresh() {
@@ -59,12 +40,14 @@
       .then(render)
       .catch(function () {
         statusEl.textContent = "Starting";
-        start.hidden = true;
+        signout.hidden = true;
       });
   }
 
-  start.addEventListener("click", function () { post("api/sign-in"); });
-  signout.addEventListener("click", function () { post("api/sign-out"); });
+  signout.addEventListener("click", function () {
+    signout.hidden = true;
+    fetch("api/sign-out", { method: "POST", headers: { "X-Grokbot-Panel": "1" } }).finally(refresh);
+  });
   refresh();
   setInterval(refresh, 2000);
 })();

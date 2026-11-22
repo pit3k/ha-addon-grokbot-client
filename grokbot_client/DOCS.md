@@ -14,7 +14,7 @@ The client is an independent project. It is not affiliated with or endorsed by x
 
 3. Open **Grok Bot** in the sidebar. Only administrators see that panel.
 
-4. When the page says **Waiting for sign-in**, press **Sign in** or scan the QR code. Approve the request in the browser. You can use a phone.
+4. When the page says **Waiting for sign-in**, open the link or scan the QR code. Approve the request in the browser. You can use a phone.
 
 5. The page changes to **Connected as ha** (or the computer name you set). The same computer shows up in Grok Bot.
 
@@ -26,7 +26,7 @@ Boot is automatic and the app does not use the host network. Those are the Home 
 
 ## Sign out
 
-Press **Sign out** in the panel. The saved login is removed and a new sign-in link is shown. The client binary stays installed. **Sign in** does nothing while this system is already connected.
+While the page is waiting, it shows the status, the QR code, and the sign-in link. The client prepares that link on its own. While connected, the page shows the status, the account, and **Sign out**. Sign out removes the saved login and a new link is shown. The client binary stays installed.
 
 ## Options
 

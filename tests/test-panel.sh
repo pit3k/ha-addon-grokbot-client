@@ -53,14 +53,19 @@ fail() {
 
 page=$(curl -fsS "http://127.0.0.1:${port}/")
 grep -q "Grok Bot client" <<<"$page" || fail "page title missing"
-grep -q 'id="signin-start"[^>]*hidden' <<<"$page" || fail "Sign in starts visible"
+grep -q 'id="signout"[^>]*hidden' <<<"$page" || fail "Sign out starts visible"
+if grep -q 'signin-start\|Sign in' <<<"$page"; then
+  fail "panel still has a Sign in button"
+fi
+buttons=$(grep -c '<button' <<<"$page")
+[[ "$buttons" == "1" ]] || fail "expected one button, found ${buttons}"
 css=$(curl -fsS "http://127.0.0.1:${port}/style.css")
 grep -q '\[hidden\]' <<<"$css" || fail "hidden rule missing"
 grep -q 'display: none !important' <<<"$css" || fail "hidden does not override display"
 js=$(curl -fsS "http://127.0.0.1:${port}/app.js")
-grep -q 'state === "signed_out" || state === "starting"' <<<"$js" || fail "Sign in is not limited to signed-out"
-if grep -q 'QRCode' <<<"$js"; then
-  fail "panel still embeds a QR library"
+grep -q 'show(signout, connected)' <<<"$js" || fail "Sign out is not limited to connected"
+if grep -q 'api/sign-in' <<<"$js"; then
+  fail "panel still requests sign-in"
 fi
 
 status=$(curl -fsS "http://127.0.0.1:${port}/api/status")

@@ -51,7 +51,8 @@ for _ in $(seq 1 40); do
   sleep 0.5
 done
 [[ -n "$page" ]] || fail "panel did not start"
-grep -q "Sign in" <<<"$page" || fail "panel page has no sign-in button"
+grep -q 'id="status"' <<<"$page" || fail "panel page has no status"
+grep -q 'id="signout"' <<<"$page" || fail "panel page has no sign-out button"
 
 status=""
 for _ in $(seq 1 40); do

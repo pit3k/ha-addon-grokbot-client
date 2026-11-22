@@ -7,23 +7,11 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <main>
-    <h1>Grok Bot client</h1>
-    <p id="status" role="status">Starting</p>
-    <p id="account" hidden></p>
-    <div id="signin-block" hidden>
-      <a id="signin-link" class="button" target="_blank" rel="noopener noreferrer">Open sign-in page</a>
-      <img id="qr" alt="Sign-in QR code" width="200" height="200" hidden>
-      <input id="login-url" type="url" readonly spellcheck="false">
-    </div>
-    <div class="actions">
-      <button id="signin-start" class="button" type="button" hidden>Sign in</button>
-      <button id="signout" class="button" type="button" hidden>Sign out</button>
-    </div>
-    <p id="detail" hidden></p>
-    <p id="error" role="alert" hidden></p>
-    <p id="version"></p>
-  </main>
+  <p id="status" role="status">Starting</p>
+  <p id="account" hidden></p>
+  <img id="qr" alt="" width="200" height="200" hidden>
+  <a id="signin-link" hidden target="_blank" rel="noopener noreferrer"></a>
+  <button id="signout" type="button" hidden>Sign out</button>
   <script src="app.js"></script>
 </body>
 </html>
