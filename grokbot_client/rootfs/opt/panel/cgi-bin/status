@@ -1,0 +1,47 @@
+#!/bin/sh
+# status reads the launcher status file. sign-out and permission are links to this script.
+state=${GROKBOT_STATE_DIR:-/run/grokbot}
+store=${GROKBOT_STORE:-/data/.grok/bot-tunnel}
+perm=${GROKBOT_PERMISSION_FILE:-/data/permission}
+name=${SCRIPT_NAME##*/}
+
+saved() {
+  p=$( [ -f "$perm" ] && tr -d '[:space:]' <"$perm" || true )
+  case $p in always|ask|never) ;; *) p=always ;; esac
+  printf '%s' "$p"
+}
+
+if [ "$name" = status ]; then
+  printf '%s\r\n' 'Content-Type: application/json' ''
+  p=$(saved)
+  if [ -f "$state/status.json" ]; then
+    jq -c --arg p "$p" '. + {permission:$p}' "$state/status.json"
+  else
+    jq -nc --arg p "$p" '{state:"starting",status:"Not signed in",login_url:"",error:"",detail:"",version:"",email:"",label:"",permission:$p}'
+  fi
+  exit 0
+fi
+if [ "$name" = permission ]; then
+  if [ "${REQUEST_METHOD:-}" != POST ] || [ -z "${HTTP_X_GROKBOT_PANEL:-}" ]; then
+    printf '%s\r\n' 'Status: 403 Forbidden' 'Content-Type: text/plain' '' 'forbidden'
+    exit 0
+  fi
+  read -r value || true
+  value=$(printf '%s' "$value" | tr -d '[:space:]')
+  case $value in
+    always|ask|never) ;;
+    *) printf '%s\r\n' 'Status: 400 Bad Request' 'Content-Type: text/plain' '' 'bad permission'; exit 0 ;;
+  esac
+  printf '%s\n' "$value" >"$perm"
+  printf '%s\r\n' 'Status: 204 No Content' ''
+  exit 0
+fi
+if [ "$name" != sign-out ] || [ "${REQUEST_METHOD:-}" != POST ] || [ -z "${HTTP_X_GROKBOT_PANEL:-}" ]; then
+  printf '%s\r\n' 'Status: 403 Forbidden' 'Content-Type: text/plain' '' 'forbidden'
+  exit 0
+fi
+# Stop the client before deleting the login, so it cannot write the files back.
+/usr/bin/s6-svc -wD -d /run/service/grokbot
+rm -f "$store/auth.json" "$store/computer.json" "$state/status.json" "$state/qr.svg"
+/usr/bin/s6-svc -u /run/service/grokbot
+printf '%s\r\n' 'Status: 204 No Content' ''

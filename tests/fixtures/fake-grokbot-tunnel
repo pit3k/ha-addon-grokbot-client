@@ -1,0 +1,55 @@
+#!/bin/sh
+# Stand-in for grokbot-tunnel used by the session test and the container smoke test.
+set -eu
+
+if [ "${1:-}" = "--version" ] || [ "${1:-}" = "-v" ]; then
+  printf '%s\n' "grokbot-tunnel v9.9.9 (test)"
+  exit 0
+fi
+
+cmd="${1:-}"
+
+if [ "$cmd" = "login" ]; then
+  printf '%s\n' "Open this URL to sign in:"
+  printf '%s\n' "https://example.test/loginDeepControl?challenge=abc&uuid=11111111-1111-1111-1111-111111111111&mode=login"
+  count_file="${GROKBOT_FAKE_COUNT:-}"
+  if [ -n "$count_file" ]; then
+    n=0
+    if [ -f "$count_file" ]; then
+      n=$(cat "$count_file")
+    fi
+    n=$((n + 1))
+    printf '%s\n' "$n" > "$count_file"
+    if [ "$n" -eq 1 ]; then
+      mkdir -p "${HOME}/.grok/bot-tunnel"
+      printf '%s\n' '{"refresh_token":"super-secret-token-value","access_token":"also-secret","email":"owner@example.com"}' \
+        > "${HOME}/.grok/bot-tunnel/auth.json"
+      chmod 600 "${HOME}/.grok/bot-tunnel/auth.json"
+      printf '%s\n' "Logged in as owner@example.com"
+      exit 0
+    fi
+  fi
+  while true; do
+    sleep 0.2
+  done
+fi
+
+if [ "$cmd" = "connect" ]; then
+  auth="${HOME}/.grok/bot-tunnel/auth.json"
+  if [ -n "${GROKBOT_ARGS_FILE:-}" ]; then
+    printf '%s\n' "$*" > "$GROKBOT_ARGS_FILE"
+  fi
+  if [ ! -f "$auth" ]; then
+    printf '%s\n' "not logged in; run grokbot-tunnel login" >&2
+    exit 78
+  fi
+  printf '%s\n' "request 1: echo hi" >&2
+  printf '%s\n' "refresh_token=super-secret-token-value" >&2
+  printf '%s\n' "connected" >&2
+  while true; do
+    sleep 0.2
+  done
+fi
+
+printf '%s\n' "unknown command" >&2
+exit 1

@@ -1,0 +1,77 @@
+[hidden] { display: none !important; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  background: #eceae4;
+  color: #1d1c19;
+  font: 16px/1.45 system-ui, sans-serif;
+}
+
+main {
+  box-sizing: border-box;
+  width: min(28rem, calc(100% - 32px));
+  margin: 16px;
+  padding: 20px;
+  border-radius: 16px;
+  background: #f7f6f3;
+  text-align: center;
+}
+
+#status { margin: 0 0 12px; font-size: 1.25rem; font-weight: 650; }
+#permission { margin: 0 0 12px; padding: 8px 12px 4px; border: 1px solid #c9c4ba; border-radius: 8px; text-align: left; }
+#permission label { display: block; margin: 4px 0; }
+#permission p { margin: 8px 0 4px; font-size: 0.875rem; }
+#account { margin: 0 0 12px; }
+#qr { display: block; width: 200px; height: auto; margin: 0 auto 12px; background: #fff; }
+
+#link-row { display: flex; align-items: center; gap: 6px; text-align: left; }
+
+a.button, button {
+  display: inline-block;
+  margin: 0 8px 8px 0;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: 8px;
+  background: #3c4a34;
+  color: #fff;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+#signout { background: transparent; color: inherit; border: 1px solid #8a867c; }
+
+#copy {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  border: 1px solid #8a867c;
+  line-height: 0;
+}
+
+input {
+  box-sizing: border-box;
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  margin: 0;
+  padding: 8px;
+  border: 1px solid #c9c4ba;
+  border-radius: 8px;
+  font: 14px/1.4 ui-monospace, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  body { background: #161815; color: #eceae4; }
+  main { background: #232622; }
+  input { background: #161815; color: inherit; border-color: #3c403b; }
+  #permission { border-color: #3c403b; }
+  #copy, #signout { border-color: #8d8a82; }
+}

@@ -1,0 +1,2 @@
+#!/command/with-contenv bashio
+exec /usr/sbin/httpd -f -p 8099 -h /opt/panel -c /etc/grokbot/httpd.conf

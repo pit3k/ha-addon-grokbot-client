@@ -1,0 +1,15 @@
+---
+configuration:
+  label:
+    name: Computer name
+    description: Name of this system in Grok Bot. At most 100 characters.
+  auto_update:
+    name: Update the client automatically
+    description: >-
+      On startup, download a newer grokbot-tunnel release when one is
+      published. A failed download keeps the last client that ran.
+  log_level:
+    name: Log level
+    description: >-
+      Debug runs the client with --debug, so it prints each raw request.
+      The client's output goes to the app log.

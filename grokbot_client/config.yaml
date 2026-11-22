@@ -1,0 +1,41 @@
+name: Grok Bot client
+version: "0.1.0"
+slug: grokbot_client
+description: Connects a Grok Bot agent to this Home Assistant system.
+url: https://github.com/pit3k/ha-addon-grokbot-client/tree/main/grokbot_client
+arch:
+  - amd64
+  - aarch64
+startup: services
+init: false
+hassio_api: true
+hassio_role: manager
+homeassistant_api: true
+ingress: true
+panel_icon: mdi:robot
+panel_title: Grok Bot
+timeout: 30
+map:
+  - type: homeassistant_config
+    read_only: false
+  - type: all_app_configs
+    read_only: true
+  - type: app_config
+    read_only: false
+  - type: share
+    read_only: false
+  - type: media
+    read_only: false
+  - type: local_apps
+    read_only: false
+  - type: backup
+    read_only: true
+options:
+  label: homeassistant
+  auto_update: true
+  log_level: info
+schema:
+  label: str
+  auto_update: bool
+  log_level: list(debug|info|warning|error)
+image: ghcr.io/pit3k/{arch}-addon-grokbot-client
