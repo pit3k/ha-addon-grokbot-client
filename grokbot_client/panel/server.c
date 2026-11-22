@@ -209,6 +209,65 @@ static void serve_status(int fd) {
   respond(fd, 200, "OK", "application/json; charset=utf-8", buf, (size_t)n);
 }
 
+static int status_is_signed_in(void) {
+  char path[PATH_MAX];
+  char buf[4096];
+  const char *p;
+  int file;
+  ssize_t n;
+
+  if (snprintf(path, sizeof path, "%s/status.json", state_dir) >= (int)sizeof path) {
+    return 0;
+  }
+  file = open(path, O_RDONLY);
+  if (file < 0) {
+    return 0;
+  }
+  n = read(file, buf, sizeof buf - 1);
+  close(file);
+  if (n < 0) {
+    return 0;
+  }
+  buf[n] = '\0';
+  p = strstr(buf, "\"state\"");
+  if (p == NULL) {
+    return 0;
+  }
+  p = strchr(p, ':');
+  if (p == NULL) {
+    return 0;
+  }
+  p++;
+  while (*p == ' ' || *p == '\t' || *p == '\n' || *p == '\r') {
+    p++;
+  }
+  return strncmp(p, "\"connected\"", 11) == 0 || strncmp(p, "\"restarting\"", 12) == 0;
+}
+
+static void serve_qr(int fd) {
+  char path[PATH_MAX];
+  char buf[65536];
+  int file;
+  ssize_t n;
+
+  if (snprintf(path, sizeof path, "%s/qr.svg", state_dir) >= (int)sizeof path) {
+    respond(fd, 404, "Not Found", "text/plain; charset=utf-8", "not found\n", 10);
+    return;
+  }
+  file = open(path, O_RDONLY);
+  if (file < 0) {
+    respond(fd, 404, "Not Found", "text/plain; charset=utf-8", "not found\n", 10);
+    return;
+  }
+  n = read(file, buf, sizeof buf);
+  close(file);
+  if (n < 0) {
+    respond(fd, 404, "Not Found", "text/plain; charset=utf-8", "not found\n", 10);
+    return;
+  }
+  respond(fd, 200, "OK", "image/svg+xml", buf, (size_t)n);
+}
+
 static int write_control(const char *command) {
   char pattern[PATH_MAX];
   char final_path[PATH_MAX];
@@ -264,11 +323,19 @@ static void handle(int fd, const char *req) {
     serve_status(fd);
     return;
   }
+  if (strcmp(method, "GET") == 0 && strcmp(path, "/qr.svg") == 0) {
+    serve_qr(fd);
+    return;
+  }
   if (strcmp(method, "POST") == 0 &&
       (strcmp(path, "/api/sign-in") == 0 || strcmp(path, "/api/sign-out") == 0)) {
     const char *command = strcmp(path, "/api/sign-in") == 0 ? "sign-in" : "sign-out";
     if (!header_present(req, "X-Grokbot-Panel")) {
       respond(fd, 403, "Forbidden", "text/plain; charset=utf-8", "forbidden\n", 10);
+      return;
+    }
+    if (strcmp(command, "sign-in") == 0 && status_is_signed_in()) {
+      respond(fd, 204, "No Content", "text/plain; charset=utf-8", "", 0);
       return;
     }
     if (write_control(command) != 0) {

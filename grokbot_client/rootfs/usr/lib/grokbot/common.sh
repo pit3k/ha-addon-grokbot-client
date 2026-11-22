@@ -119,17 +119,36 @@ grok_wipe_login() {
   local store
   store="$(grok_store_dir)"
   rm -f "${store}/auth.json" "${store}/computer.json"
-  rm -f "${GROKBOT_STATE_DIR}/notified_url" "${GROKBOT_STATE_DIR}/notify_warned"
+  rm -f "${GROKBOT_STATE_DIR}/notified_url" "${GROKBOT_STATE_DIR}/notify_warned" \
+    "${GROKBOT_STATE_DIR}/qr.svg"
 }
 
+# Drop secret lines. BusyBox sed rejects the GNU /I flag, so this uses grep -i.
 grok_redact_text() {
-  sed -E \
-    -e '/refresh_token/Id' \
-    -e '/access_token/Id' \
-    -e '/authorization:[[:space:]]*bearer/Id' \
-    -e '/eyJ[A-Za-z0-9_-]{8,}[.][A-Za-z0-9_-]{8,}/d' \
+  grep -viE 'refresh_token|access_token|authorization:[[:space:]]*bearer|eyJ[A-Za-z0-9_-]{8,}[.][A-Za-z0-9_-]{8,}' \
     | tr '\n' ' ' \
-    | cut -c1-500
+    | cut -c1-500 || true
+}
+
+grok_write_qr() {
+  local url="$1"
+  local out="${GROKBOT_STATE_DIR}/qr.svg"
+  command -v qrencode >/dev/null 2>&1 || return 0
+  qrencode -t SVG -o "$out" -m 2 "$url" || rm -f "$out"
+}
+
+# A Sign in click while a session exists must not stop the tunnel.
+# Returns 0 after discarding that request.
+grok_signin_is_harmless() {
+  local file="${GROKBOT_STATE_DIR}/control"
+  local cmd=""
+  [[ -s "$file" ]] || return 1
+  cmd=$(tr -d '[:space:]' <"$file" || true)
+  [[ "$cmd" == "sign-in" ]] || return 1
+  grok_logged_in || return 1
+  rm -f "$file"
+  grok_log info "Sign in ignored; already signed in."
+  return 0
 }
 
 grok_tail_error() {
@@ -468,6 +487,10 @@ grok_sleep() {
   local seconds="$1"
   local i
   for ((i = 0; i < seconds; i++)); do
+    if grok_signin_is_harmless; then
+      sleep 1
+      continue
+    fi
     if [[ -s "${GROKBOT_STATE_DIR}/control" ]]; then
       return 1
     fi

@@ -21,6 +21,9 @@ grok_run_login() {
   grok_spawn_redirect "$out" "$err" "$GROKBOT_BIN" login --no-browser
   pid="$GROKBOT_CHILD"
   while kill -0 "$pid" 2>/dev/null; do
+    if grok_signin_is_harmless; then
+      continue
+    fi
     if [[ -s "${GROKBOT_STATE_DIR}/control" ]]; then
       grok_kill_child
       return 10
@@ -32,6 +35,7 @@ grok_run_login() {
       fi
       if [[ -n "$url" ]]; then
         grok_log info "Sign-in link: ${url}"
+        grok_write_qr "$url"
         grok_write_status "waiting" "Waiting for sign-in" "$url" "" "$version" "" "$label" ""
         grok_notify "$url" || true
       fi
@@ -68,6 +72,7 @@ grok_run_connect() {
   email=$(grok_account_email)
   : >"$err"
   chmod 600 "$err" || true
+  rm -f "${GROKBOT_STATE_DIR}/qr.svg"
   grok_write_status "connected" "Connected as ${label}" "" "" "$version" "$email" "$label" ""
   grok_dismiss_notification || true
   grok_log info "Connecting as ${label} with permission ${permission}."
@@ -85,6 +90,9 @@ grok_wait_child() {
   local pid="$GROKBOT_CHILD"
   local rc=0
   while kill -0 "$pid" 2>/dev/null; do
+    if grok_signin_is_harmless; then
+      continue
+    fi
     if [[ -s "${GROKBOT_STATE_DIR}/control" ]]; then
       grok_kill_child
       return 10
@@ -117,10 +125,16 @@ grok_main() {
     auto_update=$(grok_option auto_update true)
 
     if cmd=$(grok_take_control); then
-      grok_kill_child
       grok_log info "Panel requested ${cmd}."
-      grok_wipe_login
-      grok_dismiss_notification || true
+      if [[ "$cmd" == "sign-out" ]]; then
+        grok_kill_child
+        grok_wipe_login
+        grok_dismiss_notification || true
+      elif grok_logged_in; then
+        grok_log info "Sign in ignored; already signed in."
+      else
+        grok_kill_child
+      fi
     fi
 
     if ! grok_ensure_binary "$auto_update"; then

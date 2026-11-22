@@ -16,6 +16,7 @@ RUN apk add --no-cache \
         jq \
         ripgrep \
         openssh-client \
+        libqrencode-tools \
     && apk add --no-cache --virtual .panel-build build-base \
     && gcc -std=c11 -Os -s -Wall -Wextra -Werror -o /usr/bin/grokbot-panel /tmp/grokbot-panel.c \
     && rm /tmp/grokbot-panel.c \

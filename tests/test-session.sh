@@ -61,9 +61,43 @@ if grep -q "also-secret" "${work}/log"; then
   fail "access token was written to the log"
 fi
 
-control_tmp=$(mktemp "${GROKBOT_STATE_DIR}/control.XXXXXX")
-printf '%s\n' "sign-out" >"$control_tmp"
-mv -f "$control_tmp" "${GROKBOT_STATE_DIR}/control"
+write_control() {
+  local tmp
+  tmp=$(mktemp "${GROKBOT_STATE_DIR}/control.XXXXXX")
+  printf '%s\n' "$1" >"$tmp"
+  mv -f "$tmp" "${GROKBOT_STATE_DIR}/control"
+}
+
+auth_before=$(cat "${GROKBOT_STORE}/auth.json")
+child_before=""
+for _ in $(seq 1 40); do
+  if [[ -s "${GROKBOT_STATE_DIR}/child.pid" ]]; then
+    child_before=$(cat "${GROKBOT_STATE_DIR}/child.pid")
+    break
+  fi
+  sleep 0.25
+done
+[[ -n "$child_before" ]] || fail "tunnel did not start"
+write_control sign-in
+write_control sign-in
+ignored=""
+for _ in $(seq 1 40); do
+  if grep -q "already signed in" "${work}/log" &&
+    [[ "$(cat "${GROKBOT_STORE}/auth.json")" == "$auth_before" ]] &&
+    [[ "$(cat "${GROKBOT_STATE_DIR}/child.pid")" == "$child_before" ]] &&
+    [[ "$(jq -r '.status' "${GROKBOT_STATE_DIR}/status.json")" == "Connected as ha" ]]; then
+    ignored=1
+    break
+  fi
+  sleep 0.25
+done
+[[ -n "$ignored" ]] || fail "repeated sign-in did not keep the session"
+write_control sign-in
+sleep 1.5
+[[ "$(cat "${GROKBOT_STORE}/auth.json")" == "$auth_before" ]] || fail "second sign-in removed the login"
+[[ "$(cat "${GROKBOT_STATE_DIR}/child.pid")" == "$child_before" ]] || fail "second sign-in stopped the tunnel"
+
+write_control sign-out
 url=""
 for _ in $(seq 1 40); do
   if [[ ! -e "${GROKBOT_STORE}/auth.json" ]] && [[ -f "${GROKBOT_STATE_DIR}/status.json" ]]; then

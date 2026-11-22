@@ -53,10 +53,15 @@ fail() {
 
 page=$(curl -fsS "http://127.0.0.1:${port}/")
 grep -q "Grok Bot client" <<<"$page" || fail "page title missing"
-grep -q "Sign in" <<<"$page" || fail "sign-in button missing"
-curl -fsS "http://127.0.0.1:${port}/app.js" >/dev/null
-curl -fsS "http://127.0.0.1:${port}/style.css" >/dev/null
-curl -fsS "http://127.0.0.1:${port}/qrcode.js" >/dev/null
+grep -q 'id="signin-start"[^>]*hidden' <<<"$page" || fail "Sign in starts visible"
+css=$(curl -fsS "http://127.0.0.1:${port}/style.css")
+grep -q '\[hidden\]' <<<"$css" || fail "hidden rule missing"
+grep -q 'display: none !important' <<<"$css" || fail "hidden does not override display"
+js=$(curl -fsS "http://127.0.0.1:${port}/app.js")
+grep -q 'state === "signed_out" || state === "starting"' <<<"$js" || fail "Sign in is not limited to signed-out"
+if grep -q 'QRCode' <<<"$js"; then
+  fail "panel still embeds a QR library"
+fi
 
 status=$(curl -fsS "http://127.0.0.1:${port}/api/status")
 [[ "$(jq -r '.status' <<<"$status")" == "Waiting for sign-in" ]] || fail "status payload"
@@ -70,6 +75,20 @@ code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
   "http://127.0.0.1:${port}/api/sign-in")
 [[ "$code" == "204" ]] || fail "sign-in returned ${code}"
 [[ "$(tr -d '[:space:]' < "${GROKBOT_STATE_DIR}/control")" == "sign-in" ]] || fail "control file"
+rm -f "${GROKBOT_STATE_DIR}/control"
+
+jq -n '{state:"connected",status:"Connected as ha",login_url:"",error:"",detail:"",version:"v",email:"owner@example.com",label:"ha"}' \
+  > "${GROKBOT_STATE_DIR}/status.json"
+code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+  -H "X-Grokbot-Panel: 1" \
+  "http://127.0.0.1:${port}/api/sign-in")
+[[ "$code" == "204" ]] || fail "connected sign-in returned ${code}"
+[[ ! -e "${GROKBOT_STATE_DIR}/control" ]] || fail "connected sign-in wrote a control file"
+code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+  -H "X-Grokbot-Panel: 1" \
+  "http://127.0.0.1:${port}/api/sign-out")
+[[ "$code" == "204" ]] || fail "sign-out returned ${code}"
+[[ "$(tr -d '[:space:]' < "${GROKBOT_STATE_DIR}/control")" == "sign-out" ]] || fail "sign-out control"
 
 code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${port}/../etc/passwd")
 [[ "$code" == "404" || "$code" == "400" ]] || fail "path traversal returned ${code}"

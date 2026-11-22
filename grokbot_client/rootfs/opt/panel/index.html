@@ -8,26 +8,22 @@
 </head>
 <body>
   <main>
-    <p class="eyebrow">Home Assistant</p>
     <h1>Grok Bot client</h1>
-    <p id="status" class="status" data-state="starting" role="status">Not signed in</p>
-    <p id="account" class="account" hidden></p>
-    <section id="signin-block" class="signin" hidden>
-      <a id="signin-link" class="button primary" target="_blank" rel="noopener noreferrer">Sign in</a>
-      <p class="hint">Open the sign-in page, or scan the code with a phone.</p>
-      <div id="qr" class="qr" hidden></div>
-      <label class="url-label" for="login-url">Sign-in link</label>
-      <input id="login-url" class="url" type="url" readonly spellcheck="false">
-    </section>
-    <div class="actions">
-      <button id="signin-start" class="button primary" type="button">Sign in</button>
-      <button id="signout" class="button ghost" type="button" hidden>Sign out / re-link</button>
+    <p id="status" role="status">Starting</p>
+    <p id="account" hidden></p>
+    <div id="signin-block" hidden>
+      <a id="signin-link" class="button" target="_blank" rel="noopener noreferrer">Open sign-in page</a>
+      <img id="qr" alt="Sign-in QR code" width="200" height="200" hidden>
+      <input id="login-url" type="url" readonly spellcheck="false">
     </div>
-    <p id="detail" class="detail" hidden></p>
-    <p id="error" class="error" role="alert" hidden></p>
-    <p id="version" class="version"></p>
+    <div class="actions">
+      <button id="signin-start" class="button" type="button" hidden>Sign in</button>
+      <button id="signout" class="button" type="button" hidden>Sign out</button>
+    </div>
+    <p id="detail" hidden></p>
+    <p id="error" role="alert" hidden></p>
+    <p id="version"></p>
   </main>
-  <script src="qrcode.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

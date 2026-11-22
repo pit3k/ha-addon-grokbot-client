@@ -26,7 +26,7 @@ Boot is automatic and the app does not use the host network. Those are the Home 
 
 ## Sign out
 
-Press **Sign out / re-link** in the panel. The saved login is removed and a new sign-in link is shown. The client binary stays installed.
+Press **Sign out** in the panel. The saved login is removed and a new sign-in link is shown. The client binary stays installed. **Sign in** does nothing while this system is already connected.
 
 ## Options
 

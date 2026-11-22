@@ -21,6 +21,7 @@ shellcheck -s bash -S warning \
   tests/test-login.sh \
   tests/test-session.sh \
   tests/test-panel.sh \
+  tests/test-redact-alpine.sh \
   tests/smoke.sh \
   tests/run-all.sh \
   tests/fixtures/fake-grokbot-tunnel
@@ -29,5 +30,6 @@ tests/test-login.sh
 tests/test-update.sh
 tests/test-panel.sh
 tests/test-session.sh
+tests/test-redact-alpine.sh
 
 printf '%s\n' "all host tests passed"
