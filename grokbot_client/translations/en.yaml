@@ -17,5 +17,5 @@ configuration:
   log_level:
     name: Log level
     description: >-
-      Debug shows every request, including the raw request from grokbot-tunnel.
-      Info shows the normal client log. Warning and error show problems only.
+      Debug runs the client with --debug, so it prints each raw request.
+      The client's output goes to the app log.

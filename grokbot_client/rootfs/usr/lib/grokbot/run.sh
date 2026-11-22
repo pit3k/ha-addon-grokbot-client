@@ -1,220 +1,72 @@
-#!/usr/bin/env bash
-# Supervise grokbot-tunnel. s6 restarts this script if it exits; the script
-# itself restarts login and connect so the panel stays responsive.
-# shellcheck shell=bash
+#!/bin/bash
+# Run grokbot-tunnel. s6 owns this process. Sign-out stops it and starts it again.
+set -euo pipefail
 
-set -uo pipefail
-
-# shellcheck source=common.sh
-source "${GROKBOT_COMMON:-/usr/lib/grokbot/common.sh}"
-
-grok_run_login() {
-  local label="$1"
-  local out="${GROKBOT_STATE_DIR}/login.out"
-  local err="${GROKBOT_STATE_DIR}/login.err"
-  local url="" pid rc=0 error="" version
-  version=$(grok_installed_version)
-  : >"$out"
-  : >"$err"
-  export GROKBOT_LOG_OFFSET=0
-  chmod 600 "$out" "$err" || true
-  grok_write_status "waiting" "Waiting for sign-in" "" "" "$version" "" "$label" "Preparing the sign-in link…"
-  grok_spawn_redirect "$out" "$err" "$GROKBOT_BIN" login --no-browser
-  pid="$GROKBOT_CHILD"
-  while kill -0 "$pid" 2>/dev/null; do
-    grok_forward_log "$err"
-    if grok_signin_is_harmless; then
-      continue
-    fi
-    if [[ -s "${GROKBOT_STATE_DIR}/control" ]]; then
-      grok_kill_child
-      return 10
-    fi
-    if [[ -z "$url" ]]; then
-      url=$(grok_extract_url "$out" || true)
-      if [[ -z "$url" ]]; then
-        url=$(grok_extract_url "$err" || true)
-      fi
-      if [[ -n "$url" ]]; then
-        grok_log info "Sign-in link: ${url}"
-        grok_write_qr "$url"
-        grok_write_status "waiting" "Waiting for sign-in" "$url" "" "$version" "" "$label" ""
-        grok_notify "$url" || true
-      fi
-    else
-      grok_notify "$url" || true
-    fi
-    sleep 1
-  done
-  wait "$pid" || rc=$?
-  grok_forward_log "$err"
-  GROKBOT_CHILD=0
-  rm -f "${GROKBOT_STATE_DIR}/child.pid"
-  if grok_logged_in; then
-    grok_dismiss_notification || true
-    return 0
+ensure() {
+  local a n f ver tmp base
+  bin=${GROKBOT_BIN:-/data/.local/bin/grokbot-tunnel}
+  case $(uname -m) in
+    x86_64|amd64) a=amd64 ;;
+    aarch64|arm64) a=arm64 ;;
+    *) printf '%s\n' "Unsupported architecture $(uname -m)" >&2; return 1 ;;
+  esac
+  [ -x "$bin" ] && [ "${1:-true}" != true ] && return 0
+  base=${GROKBOT_TUNNEL_RELEASES_URL:-https://github.com/exa-pub/grokbot-tunnel}
+  ver=$(curl -fsSL --retry 3 --retry-delay 2 --max-time 30 -o /dev/null -w '%{url_effective}' "$base/releases/latest") || { [ -x "$bin" ]; return; }
+  ver=${ver##*/}
+  [[ "$ver" =~ ^v[0-9]+\.[0-9]+\.[0-9]+ ]] || { [ -x "$bin" ]; return; }
+  [ -x "$bin" ] && [ "$("$bin" --version 2>/dev/null | awk '{print $2}' || true)" = "$ver" ] && return 0
+  tmp=$(mktemp -d); n="grokbot-tunnel-linux-${a}"; f="${n}.tar.gz"
+  curl -fsSL --retry 3 --retry-delay 2 --max-time 120 -o "$tmp/$f" "$base/releases/download/$ver/$f" || { rm -rf "$tmp"; [ -x "$bin" ]; return; }
+  if curl -fsSL --retry 3 --max-time 30 -o "$tmp/checksums.txt" "$base/releases/download/$ver/checksums.txt"; then
+    awk -v f="$f" '$2 == f { print $1 "  " $2 }' "$tmp/checksums.txt" | (cd "$tmp" && sha256sum -c - >/dev/null) || { rm -rf "$tmp"; [ -x "$bin" ]; return; }
   fi
-  error=$(grok_tail_error "$err")
-  if [[ -z "$error" ]]; then
-    error=$(grok_tail_error "$out")
-  fi
-  if [[ -z "$error" ]]; then
-    error="Sign-in did not finish (exit ${rc}). A new link will be prepared."
-    grok_log error "$error"
-  elif ! grok_forwards_client_log; then
-    grok_log error "$error"
-  fi
-  grok_write_status "signed_out" "Not signed in" "" "$error" "$version" "" "$label" ""
-  return 1
+  tar -xzf "$tmp/$f" -C "$tmp" && "$tmp/$n" --version >/dev/null 2>&1 && install -m 0755 "$tmp/$n" "$bin" || true
+  rm -rf "$tmp"; [ -x "$bin" ]
 }
 
-grok_run_connect() {
-  local permission="$1"
-  local label="$2"
-  local err="${GROKBOT_STATE_DIR}/connect.err"
-  local version email started rc=0
-  local debug=()
-  version=$(grok_installed_version)
-  email=$(grok_account_email)
-  : >"$err"
-  export GROKBOT_LOG_OFFSET=0
-  chmod 600 "$err" || true
-  grok_write_status "connected" "Connected as ${label}" "" "" "$version" "$email" "$label" ""
-  rm -f "${GROKBOT_STATE_DIR}/qr.svg"
-  grok_dismiss_notification || true
-  grok_log info "Connecting as ${label} with permission ${permission}."
-  started=$SECONDS
-  if [[ "$(grok_normalize_log_level "$(grok_option log_level info)")" == "debug" ]]; then
-    debug=(--debug)
-  fi
-  grok_spawn_redirect /dev/null "$err" "$GROKBOT_BIN" connect \
-    --permission "$permission" \
-    --label "$label" \
-    --root / \
-    "${debug[@]}"
-  grok_wait_child "$err" || rc=$?
-  GROKBOT_LAST_RUN_SECONDS=$((SECONDS - started))
-  return "$rc"
+signed() { jq -e '(.refresh_token|type)=="string" and (.refresh_token|length)>0' "$store/auth.json" >/dev/null 2>&1; }
+
+show_link() {
+  [ -n "$url" ] && return 0
+  url=$(grep -oE 'https://[^[:space:]<>"'"'"']+' "$out" | head -n 1 || true)
+  [ -n "$url" ] || return 0
+  printf '%s\n' "Sign-in link: ${url}"
+  qrencode -t SVG -o "$state/qr.svg" -m 2 "$url" || true
+  jq -n --arg u "$url" --arg l "$label" '{state:"waiting",status:"Waiting for sign-in",login_url:$u,error:"",detail:"",version:"",email:"",label:$l}' >"$state/status.json"
 }
 
-grok_wait_child() {
-  local err="$1"
-  local pid="$GROKBOT_CHILD"
-  local rc=0
-  while kill -0 "$pid" 2>/dev/null; do
-    grok_forward_log "$err"
-    if grok_signin_is_harmless; then
-      continue
-    fi
-    if [[ -s "${GROKBOT_STATE_DIR}/control" ]]; then
-      grok_kill_child
-      return 10
-    fi
-    sleep 1
-  done
-  wait "$pid" || rc=$?
-  grok_forward_log "$err"
-  GROKBOT_CHILD=0
-  rm -f "${GROKBOT_STATE_DIR}/child.pid"
-  return "$rc"
-}
-
-grok_main() {
-  local backoff=2
+main() {
   export HOME="${GROKBOT_HOME:-/data}"
-  export SHELL="${SHELL:-/bin/bash}"
-  export PATH="/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
-  export GROKBOT_BIN="${GROKBOT_BIN:-${HOME}/.local/bin/grokbot-tunnel}"
-  mkdir -p "$GROKBOT_STATE_DIR" "$(dirname "$GROKBOT_BIN")" "$(grok_store_dir)"
-  chmod 700 "$(grok_store_dir)" || true
-
-  trap 'grok_kill_child; exit 0' TERM INT
-
-  grok_log info "Grok Bot client starting. Home is ${HOME}."
-
-  while true; do
-    local permission="" label="" auto_update="" cmd="" version="" rc=0 error=""
-    permission=$(grok_normalize_permission "$(grok_option permission always)")
-    label=$(grok_normalize_label "$(grok_option label homeassistant)")
-    auto_update=$(grok_option auto_update true)
-
-    if cmd=$(grok_take_control); then
-      grok_log info "Panel requested ${cmd}."
-      if [[ "$cmd" == "sign-out" ]]; then
-        grok_kill_child
-        grok_write_status "signed_out" "Not signed in" "" "" "$(grok_installed_version)" "" "$label" ""
-        grok_wipe_login
-        grok_dismiss_notification || true
-      elif grok_logged_in; then
-        grok_log info "Sign in ignored; already signed in."
-      else
-        grok_kill_child
-      fi
-    fi
-
-    if ! grok_ensure_binary "$auto_update"; then
-      grok_write_status "signed_out" "Not signed in" "" \
-        "Could not download the Grok Bot client. Retrying." \
-        "not installed" "" "$label" ""
-      if ! grok_sleep "$backoff"; then
-        continue
-      fi
-      backoff=$(grok_next_backoff "$backoff")
-      continue
-    fi
-
-    version=$(grok_installed_version)
-
-    if ! grok_logged_in; then
-      rc=0
-      grok_run_login "$label" || rc=$?
-      if [[ "$rc" -eq 10 || "$rc" -eq 0 ]]; then
-        backoff=2
-        continue
-      fi
-      if ! grok_sleep "$backoff"; then
-        continue
-      fi
-      backoff=$(grok_next_backoff "$backoff")
-      continue
-    fi
-
-    rc=0
-    grok_run_connect "$permission" "$label" || rc=$?
-    if [[ "$rc" -eq 10 ]]; then
-      backoff=2
-      continue
-    fi
-    if [[ "${GROKBOT_LAST_RUN_SECONDS:-0}" -gt 30 ]]; then
-      backoff=2
-    fi
-    error=$(grok_tail_error "${GROKBOT_STATE_DIR}/connect.err")
-    version=$(grok_installed_version)
-    if [[ "$rc" -eq 78 ]] || ! grok_logged_in; then
-      if [[ -z "$error" ]]; then
-        error="The session ended. Sign in again."
-        grok_log error "$error"
-      elif ! grok_forwards_client_log; then
-        grok_log error "$error"
-      fi
-      grok_write_status "signed_out" "Not signed in" "" "$error" "$version" "" "$label" ""
-      backoff=2
-      continue
-    fi
-    if [[ -z "$error" ]]; then
-      error="The client stopped (exit ${rc}) and will restart."
-      grok_log error "$error"
-    elif ! grok_forwards_client_log; then
-      grok_log error "$error"
-    fi
-    grok_write_status "restarting" "Connected as ${label}" "" "$error" "$version" "$(grok_account_email)" "$label" ""
-    if ! grok_sleep "$backoff"; then
-      continue
-    fi
-    backoff=$(grok_next_backoff "$backoff")
-  done
+  export GROKBOT_BIN="${GROKBOT_BIN:-$HOME/.local/bin/grokbot-tunnel}"
+  bin=$GROKBOT_BIN
+  store=${GROKBOT_STORE:-$HOME/.grok/bot-tunnel}
+  state=${GROKBOT_STATE_DIR:-/run/grokbot}
+  opt=${GROKBOT_OPTIONS_FILE:-/data/options.json}
+  mkdir -p "$(dirname "$bin")" "$store" "$state"
+  chmod 700 "$store" || true
+  permission=$(jq -r '.permission' "$opt"); label=$(jq -r '.label' "$opt"); level=$(jq -r '.log_level' "$opt")
+  ensure "$(jq -r '.auto_update' "$opt")" || exit 1
+  if ! signed; then
+    out=$state/login.out; : >"$out"; url=""; pid=0
+    # s6 signals this script. Forward that to login; after exec, s6 signals the client itself.
+    trap 'if [ "$pid" -ne 0 ]; then kill "$pid" 2>/dev/null || true; fi; exit 0' TERM INT
+    "$bin" login --no-browser >"$out" 2>&1 & pid=$!
+    while kill -0 "$pid" 2>/dev/null; do show_link; sleep 1; done
+    wait "$pid" || true
+    show_link
+    signed || exit 1
+  fi
+  rm -f "$state/qr.svg"
+  email=$(jq -r 'if (.email|type)=="string" then .email else "" end' "$store/auth.json" 2>/dev/null || true)
+  jq -n --arg l "$label" --arg e "$email" '{state:"connected",status:("Connected as "+$l),login_url:"",error:"",detail:"",version:"",email:$e,label:$l}' >"$state/status.json"
+  set -- connect --permission "$permission" --label "$label" --root /
+  if [ "$level" = debug ]; then
+    set -- "$@" --debug
+  fi
+  exec "$bin" "$@"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
-  grok_main "$@"
+  main "$@"
 fi

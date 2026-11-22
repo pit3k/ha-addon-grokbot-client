@@ -73,6 +73,25 @@ if grep -q "super-secret-token-value" <<<"$logs"; then
   fail "log contains a token"
 fi
 
+code=$(docker exec "$name" curl -s -o /dev/null -w '%{http_code}' -X POST \
+  -H "X-Grokbot-Panel: 1" \
+  "http://127.0.0.1:8099/cgi-bin/sign-out")
+[[ "$code" == "204" ]] || fail "sign-out returned ${code}"
+if ! docker exec "$name" true; then
+  fail "sign-out stopped the container"
+fi
+status=""
+for _ in $(seq 1 40); do
+  status=$(docker exec "$name" curl -fsS "http://127.0.0.1:8099/cgi-bin/status" 2>/dev/null || true)
+  if [[ "$(jq -r '.status' <<<"$status" 2>/dev/null || true)" == "Waiting for sign-in" ]]; then
+    break
+  fi
+  sleep 0.5
+done
+[[ "$(jq -r '.status' <<<"$status")" == "Waiting for sign-in" ]] || fail "sign-out did not return to a sign-in link: $status"
+clients=$(docker exec "$name" ps -o args= | grep -c '[g]rokbot-tunnel' || true)
+[[ "$clients" == "1" ]] || fail "expected one client after sign-out, found ${clients}"
+
 ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$name")
 denied=$(docker run --rm --network bridge --entrypoint wget "$image" -S -O /dev/null "http://${ip}:8099/cgi-bin/status" 2>&1 || true)
 grep -q '403 Forbidden' <<<"$denied" || fail "a non-ingress address was not refused"

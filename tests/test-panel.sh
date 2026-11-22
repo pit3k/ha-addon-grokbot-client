@@ -31,7 +31,8 @@ s.close()
 PY
 )
 export GROKBOT_STATE_DIR="${work}/run"
-mkdir -p "${work}/www/cgi-bin" "$GROKBOT_STATE_DIR"
+export GROKBOT_STORE="${work}/store"
+mkdir -p "${work}/www/cgi-bin" "$GROKBOT_STATE_DIR" "$GROKBOT_STORE"
 ln -s "${panel}/index.html" "${panel}/style.css" "${panel}/app.js" "${work}/www/"
 ln -s "${panel}/cgi-bin/status" "${work}/www/cgi-bin/status"
 ln -s status "${work}/www/cgi-bin/sign-out"
@@ -112,11 +113,17 @@ status=$(curl -fsS "http://127.0.0.1:${port}/cgi-bin/status")
 
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:${port}/cgi-bin/sign-out")
 [[ "$code" == "403" ]] || fail "missing panel header was ${code}"
+printf '%s\n' '{"refresh_token":"secret"}' > "${GROKBOT_STORE}/auth.json"
+printf '%s\n' '{"credential":"secret"}' > "${GROKBOT_STORE}/computer.json"
+printf '%s\n' '{"machine_id":"keep-me"}' > "${GROKBOT_STORE}/machine.json"
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
   -H "X-Grokbot-Panel: 1" \
   "http://127.0.0.1:${port}/cgi-bin/sign-out")
 [[ "$code" == "204" ]] || fail "sign-out returned ${code}"
-[[ "$(tr -d '[:space:]' < "${GROKBOT_STATE_DIR}/control")" == "sign-out" ]] || fail "sign-out control"
+[[ ! -e "${GROKBOT_STORE}/auth.json" ]] || fail "auth.json survived sign-out"
+[[ ! -e "${GROKBOT_STORE}/computer.json" ]] || fail "computer.json survived sign-out"
+[[ -f "${GROKBOT_STORE}/machine.json" ]] || fail "machine.json was removed"
+[[ ! -e "${GROKBOT_STATE_DIR}/control" ]] || fail "sign-out still writes a control file"
 
 code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${port}/../etc/passwd")
 [[ "$code" == "404" || "$code" == "400" ]] || fail "path traversal returned ${code}"

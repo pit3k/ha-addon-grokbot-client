@@ -10,7 +10,6 @@ if ! command -v shellcheck >/dev/null 2>&1; then
 fi
 
 shellcheck -s bash -S warning \
-  grokbot_client/rootfs/usr/lib/grokbot/common.sh \
   grokbot_client/rootfs/usr/lib/grokbot/run.sh \
   grokbot_client/rootfs/etc/s6-overlay/s6-rc.d/init-grokbot/run \
   grokbot_client/rootfs/etc/s6-overlay/s6-rc.d/grokbot/run \
@@ -19,20 +18,14 @@ shellcheck -s bash -S warning \
   grokbot_client/rootfs/etc/s6-overlay/s6-rc.d/panel/finish \
   grokbot_client/rootfs/opt/panel/cgi-bin/status \
   tests/test-update.sh \
-  tests/test-login.sh \
-  tests/test-session.sh \
-  tests/test-log.sh \
+  tests/test-run.sh \
   tests/test-panel.sh \
-  tests/test-redact-alpine.sh \
   tests/smoke.sh \
   tests/run-all.sh \
   tests/fixtures/fake-grokbot-tunnel
 
-tests/test-login.sh
 tests/test-update.sh
+tests/test-run.sh
 tests/test-panel.sh
-tests/test-session.sh
-tests/test-log.sh
-tests/test-redact-alpine.sh
 
 printf '%s\n' "all host tests passed"

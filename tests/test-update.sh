@@ -3,8 +3,8 @@
 set -euo pipefail
 
 root="$(cd "$(dirname -- "$0")/.." && pwd)"
-# shellcheck source=../grokbot_client/rootfs/usr/lib/grokbot/common.sh
-source "${root}/grokbot_client/rootfs/usr/lib/grokbot/common.sh"
+# shellcheck source=../grokbot_client/rootfs/usr/lib/grokbot/run.sh
+source "${root}/grokbot_client/rootfs/usr/lib/grokbot/run.sh"
 
 work=$(mktemp -d)
 server_pid=""
@@ -17,7 +17,11 @@ cleanup() {
 }
 trap cleanup EXIT
 
-arch=$(grok_tunnel_arch)
+case $(uname -m) in
+  x86_64|amd64) arch=amd64 ;;
+  aarch64|arm64) arch=arm64 ;;
+  *) printf '%s\n' "unsupported architecture" >&2; exit 1 ;;
+esac
 releases="${work}/releases"
 mkdir -p "$releases"
 payload="${work}/payload"
@@ -51,14 +55,14 @@ fail() {
   exit 1
 }
 
-grok_ensure_binary true
+ensure true
 [[ -x "$GROKBOT_BIN" ]] || fail "binary was not installed"
 got=$("$GROKBOT_BIN" --version)
 [[ "$got" == "grokbot-tunnel v9.9.9 (test)" ]] || fail "unexpected version: $got"
 
 # Same version is left in place even if the archive disappears.
 rm -f "${releases}/${archive}"
-grok_ensure_binary true
+ensure true
 [[ "$("$GROKBOT_BIN" --version)" == "grokbot-tunnel v9.9.9 (test)" ]] || fail "missing archive replaced a current client"
 
 # An older binary is kept when the new archive fails the checksum.
@@ -70,24 +74,20 @@ EOF
 chmod 0755 "$GROKBOT_BIN"
 tar -czf "${releases}/${archive}" -C "$payload" "grokbot-tunnel-linux-${arch}"
 printf '%s\n' "0000000000000000000000000000000000000000000000000000000000000000  ${archive}" > "${releases}/checksums.txt"
-grok_ensure_binary true
+ensure true
 [[ "$("$GROKBOT_BIN" --version)" == "grokbot-tunnel v1.0.0 (test)" ]] || fail "bad checksum replaced the working client"
 
 # With no working client, a bad checksum does not install anything.
 rm -f "$GROKBOT_BIN"
-if grok_ensure_binary true; then
+if ensure true; then
   fail "bad checksum installed a client from nothing"
 fi
 [[ ! -e "$GROKBOT_BIN" ]] || fail "bad checksum left a binary behind"
 
-# No published checksum, and no client yet: install and say so.
+# No published checksum, and no client yet: install the release.
 rm -f "${releases}/checksums.txt"
-log="${work}/nocheck.log"
-if ! grok_ensure_binary true >"$log" 2>&1; then
-  fail "install without checksums.txt failed"
-fi
-grep -q "without a checksum" "$log" || fail "missing checksum was not reported"
-[[ "$("$GROKBOT_BIN" --version)" == "grokbot-tunnel v9.9.9 (test)" ]] || fail "unverified first install did not run"
+ensure true
+[[ "$("$GROKBOT_BIN" --version)" == "grokbot-tunnel v9.9.9 (test)" ]] || fail "install without checksums.txt did not run"
 
 # A newer release that cannot be downloaded leaves the working client in place.
 cat > "$GROKBOT_BIN" <<'EOF'
@@ -97,7 +97,7 @@ exit 0
 EOF
 chmod 0755 "$GROKBOT_BIN"
 rm -f "${releases}/${archive}"
-grok_ensure_binary true
+ensure true
 [[ "$("$GROKBOT_BIN" --version)" == "grokbot-tunnel v1.0.0 (test)" ]] || fail "failed download replaced the working client"
 cat > "$GROKBOT_BIN" <<'EOF'
 #!/bin/sh
@@ -108,7 +108,7 @@ chmod 0755 "$GROKBOT_BIN"
 
 # auto_update false does not replace a client, and does not need the network.
 export GROKBOT_TUNNEL_RELEASES_URL="http://127.0.0.1:1"
-grok_ensure_binary false
+ensure false
 [[ "$("$GROKBOT_BIN" --version)" == "grokbot-tunnel v9.9.9 (test)" ]] || fail "auto_update false changed the client"
 
 printf '%s\n' "update tests passed"
