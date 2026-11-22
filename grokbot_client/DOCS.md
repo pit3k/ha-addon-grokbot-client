@@ -63,7 +63,7 @@ Inside the container:
 
 Commands run as root in this container. File tools are allowed anywhere under `/`. A shell command is not limited to one directory: it can read anything the container can read, including the login files under `/data/.grok/bot-tunnel`.
 
-The same notes are in `/usr/share/grokbot/LAYOUT.txt` for the agent.
+Do not print the login files or copy them into a chat. Do not log access tokens, refresh tokens, or the contents of `auth.json`.
 
 ## Approvals
 
