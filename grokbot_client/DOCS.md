@@ -64,6 +64,20 @@ Commands run as root in this container. File tools are allowed anywhere under `/
 
 The same notes are in `/usr/share/grokbot/LAYOUT.txt` for the agent.
 
+## Approvals
+
+Grok Bot checks every action an agent wants to run here, such as a command or a file change, before it sends the action to this app. When Grok Bot manages permissions for this computer, the app runs exactly the actions Grok Bot approved. The app log then says `Grok Bot manages permissions for this computer`.
+
+With `always`, the default:
+
+- Auto-review in Grok Bot checks each action first. You set it up in Grok Bot under **Settings → General → Auto-review** and **Auto-review rules**.
+- An action that Auto-review blocks never reaches Home Assistant. The agent is told why. It can then ask you to approve it. The approval card appears in Grok Bot, in the chat of the agent that asked, not in Home Assistant.
+- Every other action runs without asking.
+
+With `ask`, Grok Bot asks you in that agent's chat before each action, and nothing runs until you approve it. Home Assistant never asks you anything.
+
+The app sets this permission for the computer in Grok Bot (**Settings → Computer**) at every start. A change made there lasts until the app restarts. To keep a change, set **Permission** here. A team policy can keep a stricter setting.
+
 ## Security
 
 - The app is not privileged, has no Docker socket, and does not use the host network. It is not full hardware access.
