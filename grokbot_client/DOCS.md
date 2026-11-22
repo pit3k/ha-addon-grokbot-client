@@ -14,15 +14,19 @@ The client is an independent project. It is not affiliated with or endorsed by x
 
 3. On the app's Info page, click **Open Web UI**. The page is not in the sidebar. Only administrators can open it.
 
-4. On that page, before you sign in, the execution policy is **Always allow**. Choose **Ask every time** or **Never allow** to change it. Then use **Click to sign in**, copy the link, or scan the QR code. Approve the request in the browser. You can use a phone. The same link is in the app log.
-
-5. The page changes to **Connected as homeassistant** (or the computer name you set). The same computer shows up in Grok Bot.
-
-The sign-in link is also written once to the app log.
-
 Home Assistant OS from 2026.7 or later is required. The folder map uses the current names (`homeassistant_config`, `all_app_configs`).
 
 Boot is automatic and the app does not use the host network. Those are the Home Assistant defaults, so `config.yaml` does not repeat them. The panel listens on port 8099, also the default, and accepts only `172.30.32.2` (Home Assistant ingress) and `127.0.0.1` (the image health check, `http://127.0.0.1:8099/cgi-bin/status`). It is not shown in the sidebar. **Open Web UI** on the Info page opens it.
+
+## Sign in
+
+1. On the page from **Open Web UI**, before you sign in, the execution policy is **Always allow**. Choose **Ask every time** or **Never allow** to change it. Then use **Click to sign in**, copy the link, or scan the QR code. Approve the request in the browser. You can use a phone. The same link is in the app log.
+
+2. The page changes to **Connected as homeassistant** (or the computer name you set). The same computer shows up in Grok Bot.
+
+The sign-in link is also written once to the app log.
+
+The sign-in link expires after about 15 minutes. If you do not sign in by then, the app stops. Start it again to get a new link.
 
 ## Sign out
 

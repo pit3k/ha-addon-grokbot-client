@@ -38,7 +38,7 @@ show_link() {
   [ -n "$url" ] && return 0
   url=$(grep -oE 'https://[^[:space:]<>"'"'"']+' "$out" | head -n 1 || true)
   [ -n "$url" ] || return 0
-  printf '%s\n' "Sign-in link: ${url}"
+  printf '[%s] INFO: Sign-in link: %s\n' "$(date +%H:%M:%S)" "$url"
   qrencode -t SVG -o "$state/qr.svg" -m 2 "$url" || true
   jq -n --arg u "$url" --arg l "$label" '{state:"waiting",status:"Waiting for sign-in",login_url:$u,error:"",detail:"",version:"",email:"",label:$l}' >"$state/status.json"
 }
