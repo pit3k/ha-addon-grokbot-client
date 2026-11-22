@@ -26,6 +26,8 @@ map:
     read_only: false
   - type: media
     read_only: false
+  - type: local_apps
+    read_only: false
   - type: backup
     read_only: true
 options:
