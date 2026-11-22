@@ -1,5 +1,8 @@
 #!/command/with-contenv bashio
+# Exit codes 0 and 256 are a clean stop. Any other code halts the container
+# so the Supervisor watchdog decides whether to start the add-on again.
 if [[ "${1}" -eq 0 || "${1}" -eq 256 ]]; then
   exit 0
 fi
-sleep 2
+bashio::log.warning "Panel exited with code ${1}. Halting the container."
+exec /run/s6/basedir/bin/halt

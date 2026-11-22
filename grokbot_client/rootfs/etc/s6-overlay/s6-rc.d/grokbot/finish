@@ -1,8 +1,8 @@
 #!/command/with-contenv bashio
-# s6 restarts this service. Back off after a crash. A signal (shutdown or
-# an intentional stop) restarts immediately.
+# Exit codes 0 and 256 are a clean stop. Any other code halts the container
+# so the Supervisor watchdog decides whether to start the add-on again.
 if [[ "${1}" -eq 0 || "${1}" -eq 256 ]]; then
   exit 0
 fi
-bashio::log.warning "Grok Bot client service exited with code ${1}. Starting it again in 10 seconds."
-sleep 10
+bashio::log.warning "Grok Bot client service exited with code ${1}. Halting the container."
+exec /run/s6/basedir/bin/halt
