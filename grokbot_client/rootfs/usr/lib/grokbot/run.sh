@@ -27,6 +27,13 @@ ensure() {
 
 signed() { jq -e '(.refresh_token|type)=="string" and (.refresh_token|length)>0' "$store/auth.json" >/dev/null 2>&1; }
 
+# The sign-in page writes this. Only the connect that follows that sign-in reads it.
+chosen() {
+  local p f=${GROKBOT_PERMISSION_FILE:-$HOME/permission}
+  p=$( [ -f "$f" ] && tr -d '[:space:]' <"$f" || true )
+  case $p in always|ask|never) printf '%s\n' "$p" ;; *) printf '%s\n' always ;; esac
+}
+
 show_link() {
   [ -n "$url" ] && return 0
   url=$(grep -oE 'https://[^[:space:]<>"'"'"']+' "$out" | head -n 1 || true)
@@ -45,9 +52,10 @@ main() {
   opt=${GROKBOT_OPTIONS_FILE:-/data/options.json}
   mkdir -p "$(dirname "$bin")" "$store" "$state"
   chmod 700 "$store" || true
-  label=$(jq -r '.label' "$opt"); level=$(jq -r '.log_level' "$opt")
+  label=$(jq -r '.label' "$opt"); level=$(jq -r '.log_level' "$opt"); first=0
   ensure "$(jq -r '.auto_update' "$opt")" || exit 1
   if ! signed; then
+    first=1
     out=$state/login.out; : >"$out"; url=""; pid=0
     # s6 signals this script. Forward that to login; after exec, s6 signals the client itself.
     trap 'if [ "$pid" -ne 0 ]; then kill "$pid" 2>/dev/null || true; fi; exit 0' TERM INT
@@ -61,6 +69,10 @@ main() {
   email=$(jq -r 'if (.email|type)=="string" then .email else "" end' "$store/auth.json" 2>/dev/null || true)
   jq -n --arg l "$label" --arg e "$email" '{state:"connected",status:("Connected as "+$l),login_url:"",error:"",detail:"",version:"",email:$e,label:$l}' >"$state/status.json"
   set -- connect --label "$label" --root /
+  # --permission is set once, on the connect that follows sign-in.
+  if [ "$first" = 1 ]; then
+    set -- "$@" --permission "$(chosen)"
+  fi
   if [ "$level" = debug ]; then
     set -- "$@" --debug
   fi

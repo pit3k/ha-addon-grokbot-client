@@ -61,6 +61,13 @@ for _ in $(seq 1 40); do
   sleep 0.5
 done
 [[ "$(jq -r '.status' <<<"$status")" == "Waiting for sign-in" ]] || fail "status did not show a missing login: $status"
+[[ "$(jq -r '.permission' <<<"$status")" == "always" ]] || fail "default permission: $status"
+grep -q 'Always allow' <<<"$page" || fail "permission choice missing"
+code=$(docker exec "$name" curl -s -o /dev/null -w '%{http_code}' -X POST \
+  -H "X-Grokbot-Panel: 1" --data 'ask' \
+  "http://127.0.0.1:8099/cgi-bin/permission")
+[[ "$code" == "204" ]] || fail "permission returned ${code}"
+[[ "$(tr -d '[:space:]' < "${work}/data/permission")" == "ask" ]] || fail "permission was not saved"
 url=$(jq -r '.login_url' <<<"$status")
 [[ "$url" == https://example.test/* ]] || fail "login url missing: $status"
 

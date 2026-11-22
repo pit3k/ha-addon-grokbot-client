@@ -32,10 +32,12 @@ PY
 )
 export GROKBOT_STATE_DIR="${work}/run"
 export GROKBOT_STORE="${work}/store"
+export GROKBOT_PERMISSION_FILE="${work}/permission"
 mkdir -p "${work}/www/cgi-bin" "$GROKBOT_STATE_DIR" "$GROKBOT_STORE"
 ln -s "${panel}/index.html" "${panel}/style.css" "${panel}/app.js" "${work}/www/"
 ln -s "${panel}/cgi-bin/status" "${work}/www/cgi-bin/status"
 ln -s status "${work}/www/cgi-bin/sign-out"
+ln -s status "${work}/www/cgi-bin/permission"
 ln -s "${GROKBOT_STATE_DIR}/qr.svg" "${work}/www/qr.svg"
 jq -n \
   --arg status "Waiting for sign-in" \
@@ -64,6 +66,11 @@ grep -q '^D:\*$' "$conf" || fail "other addresses are not denied"
 page=$(curl -fsS "http://127.0.0.1:${port}/")
 grep -q "Grok Bot client" <<<"$page" || fail "page title missing"
 grep -q 'id="signout"[^>]*hidden' <<<"$page" || fail "Sign out starts visible"
+grep -q 'id="permission"[^>]*hidden' <<<"$page" || fail "permission choice starts visible"
+grep -q 'Always allow' <<<"$page" || fail "Always allow missing"
+grep -q 'Ask every time' <<<"$page" || fail "Ask every time missing"
+grep -q 'Never allow' <<<"$page" || fail "Never allow missing"
+grep -q 'value="always" checked' <<<"$page" || fail "Always allow is not preselected"
 grep -q 'Click to sign in' <<<"$page" || fail "sign-in link missing"
 grep -q 'id="link-row"[^>]*hidden' <<<"$page" || fail "link row starts visible"
 grep -q 'aria-label="Copy"' <<<"$page" || fail "copy icon missing"
@@ -75,6 +82,8 @@ grep -q 'display: none !important' <<<"$css" || fail "hidden does not override d
 grep -q 'prefers-color-scheme: dark' <<<"$css" || fail "dark scheme missing"
 js=$(curl -fsS "http://127.0.0.1:${port}/app.js")
 grep -q 'show(signout, connected)' <<<"$js" || fail "Sign out is not limited to connected"
+grep -q 'show(permission, waiting)' <<<"$js" || fail "permission choice is not limited to sign-in"
+grep -q 'cgi-bin/permission' <<<"$js" || fail "permission URL missing"
 grep -q 'addEventListener("error"' <<<"$js" || fail "QR load is not retried"
 grep -q 'cgi-bin/status' <<<"$js" || fail "status URL missing"
 grep -q 'cgi-bin/sign-out' <<<"$js" || fail "sign-out URL missing"
@@ -107,6 +116,21 @@ grep -q '</svg>' "${work}/qr-big.svg" || fail "large qr was cut off"
 status=$(curl -fsS "http://127.0.0.1:${port}/cgi-bin/status")
 [[ "$(jq -r '.status' <<<"$status")" == "Waiting for sign-in" ]] || fail "status payload"
 [[ "$(jq -r '.login_url' <<<"$status")" == https://example.test/* ]] || fail "status url"
+[[ "$(jq -r '.permission' <<<"$status")" == "always" ]] || fail "default permission"
+code=$(curl -s -o /dev/null -w '%{http_code}' -X POST --data 'ask' "http://127.0.0.1:${port}/cgi-bin/permission")
+[[ "$code" == "403" ]] || fail "permission without the panel header was ${code}"
+code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+  -H "X-Grokbot-Panel: 1" --data 'nope' \
+  "http://127.0.0.1:${port}/cgi-bin/permission")
+[[ "$code" == "400" ]] || fail "bad permission was ${code}"
+[[ ! -e "$GROKBOT_PERMISSION_FILE" ]] || fail "bad permission was saved"
+code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
+  -H "X-Grokbot-Panel: 1" --data 'ask' \
+  "http://127.0.0.1:${port}/cgi-bin/permission")
+[[ "$code" == "204" ]] || fail "permission returned ${code}"
+[[ "$(tr -d '[:space:]' < "$GROKBOT_PERMISSION_FILE")" == "ask" ]] || fail "permission file"
+status=$(curl -fsS "http://127.0.0.1:${port}/cgi-bin/status")
+[[ "$(jq -r '.permission' <<<"$status")" == "ask" ]] || fail "status permission"
 rm -f "${GROKBOT_STATE_DIR}/status.json"
 status=$(curl -fsS "http://127.0.0.1:${port}/cgi-bin/status")
 [[ "$(jq -r '.state' <<<"$status")" == "starting" ]] || fail "missing status file"

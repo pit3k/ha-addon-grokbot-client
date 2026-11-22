@@ -14,7 +14,7 @@ The client is an independent project. It is not affiliated with or endorsed by x
 
 3. On the app's Info page, click **Open Web UI**. The page is not in the sidebar. Only administrators can open it.
 
-4. When the page says **Waiting for sign-in**, use **Click to sign in**, copy the link, or scan the QR code. Approve the request in the browser. You can use a phone.
+4. When the page says **Waiting for sign-in**, leave **Always allow** selected or choose **Ask every time** or **Never allow**. Then use **Click to sign in**, copy the link, or scan the QR code. Approve the request in the browser. You can use a phone.
 
 5. The page changes to **Connected as homeassistant** (or the computer name you set). The same computer shows up in Grok Bot.
 
@@ -26,11 +26,11 @@ Boot is automatic and the app does not use the host network. Those are the Home 
 
 ## Sign out
 
-While the page is waiting, it shows the status, the QR code, and the sign-in link. The client prepares that link on its own. While connected, the page shows the status, the account, and **Sign out**. Sign out removes the saved login and a new link is shown. The client binary stays installed.
+While the page is waiting, it shows the status, the permission choice, the QR code, and the sign-in link. The client prepares that link on its own. While connected, the page shows the status, the account, and **Sign out**. Sign out removes the saved login and a new link is shown. The client binary stays installed.
 
 ## Options
 
-The app runs `grokbot-tunnel connect --label <label> --root /`.
+The app runs `grokbot-tunnel connect --label <label> --root /`. The first connect after a sign-in also passes `--permission` from the sign-in page.
 
 | Option | Default | Meaning |
 | --- | --- | --- |
@@ -63,11 +63,13 @@ The same notes are in `/usr/share/grokbot/LAYOUT.txt` for the agent.
 
 ## Approvals
 
-You choose the permission for this computer in Grok Bot, under **Settings → Computer**. The app does not change it. Grok Bot checks every action an agent wants to run here before it sends the action to this app, and the app runs exactly the actions Grok Bot approved.
+On the sign-in page, choose what this computer may do. **Always allow** is selected. The choice applies only to this sign-in. The first `connect` after that sign-in runs with `--permission always`, `--permission ask`, or `--permission never`, and that sets the permission for this computer in Grok Bot. Later starts, including a restart of the app, run `connect` without `--permission`, so they keep whatever is set in Grok Bot.
 
-- **Always**: Auto-review in Grok Bot checks each action first. You set it up under **Settings → General → Auto-review** and **Auto-review rules**. An action that Auto-review blocks never reaches Home Assistant. The agent is told why and may ask you to approve it. The approval card appears in Grok Bot, in the chat of that agent. Every other action runs without asking.
+Change it later in Grok Bot under **Settings → Computer**. Sign out on this page and sign in again to pick again. The page remembers the last choice in `/data/permission`.
+
+- **Always allow**: Auto-review in Grok Bot checks each action first. You set it up under **Settings → General → Auto-review** and **Auto-review rules**. An action that Auto-review blocks never reaches Home Assistant. The agent is told why and may ask you to approve it. The approval card appears in Grok Bot, in the chat of that agent. Every other action runs without asking.
 - **Ask every time**: Grok Bot shows an approval card in the agent's chat before each action. Nothing runs until you approve it.
-- **Never**: every action is refused.
+- **Never allow**: every action is refused.
 
 Home Assistant never asks you anything.
 

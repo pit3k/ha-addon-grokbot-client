@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# A missing login logs one link. A finished login execs connect, with --debug only at debug.
+# A missing login logs one link. The connect after that sign-in passes --permission once.
 set -euo pipefail
 
 root="$(cd "$(dirname -- "$0")/.." && pwd)"
@@ -70,9 +70,7 @@ wait_for() {
 write_options info
 start_run
 wait_for "$GROKBOT_ARGS_FILE" || fail "info run did not connect"
-if grep -q -- '--permission' "$GROKBOT_ARGS_FILE"; then
-  fail "permission was passed"
-fi
+grep -q -- '--permission always' "$GROKBOT_ARGS_FILE" || fail "first sign-in did not pass always"
 grep -q -- '--label homeassistant' "$GROKBOT_ARGS_FILE" || fail "label was not passed"
 grep -q -- '--root /' "$GROKBOT_ARGS_FILE" || fail "root was not passed"
 if grep -q -- '--debug' "$GROKBOT_ARGS_FILE"; then
@@ -83,19 +81,37 @@ fi
 [[ "$(grep -c 'Sign-in link:' "${work}/log")" == "1" ]] || fail "sign-in link was not logged once"
 stop_run
 
+printf '%s\n' ask > "${GROKBOT_HOME}/permission"
 write_options debug
 start_run
 wait_for "$GROKBOT_ARGS_FILE" || fail "debug run did not connect"
+grep -q -- '--permission ask' "$GROKBOT_ARGS_FILE" || fail "saved choice was not passed"
 grep -q -- '--debug' "$GROKBOT_ARGS_FILE" || fail "debug did not pass --debug"
 stop_run
 
+printf '%s\n' maybe > "${GROKBOT_HOME}/permission"
 write_options warning
 start_run
 wait_for "$GROKBOT_ARGS_FILE" || fail "warning run did not connect"
+grep -q -- '--permission always' "$GROKBOT_ARGS_FILE" || fail "bad choice was not treated as always"
 if grep -q -- '--debug' "$GROKBOT_ARGS_FILE"; then
   fail "warning passed --debug"
 fi
 stop_run
+
+printf '%s\n' never > "${GROKBOT_HOME}/permission"
+mkdir -p "${GROKBOT_HOME}/.grok/bot-tunnel"
+printf '%s\n' '{"refresh_token":"super-secret-token-value","email":"owner@example.com"}' \
+  > "${GROKBOT_HOME}/.grok/bot-tunnel/auth.json"
+rm -f "$GROKBOT_ARGS_FILE" "${work}/log"
+setsid "${root}/grokbot_client/rootfs/usr/lib/grokbot/run.sh" >"${work}/log" 2>&1 &
+pid=$!
+wait_for "$GROKBOT_ARGS_FILE" || fail "signed-in restart did not connect"
+if grep -q -- '--permission' "$GROKBOT_ARGS_FILE"; then
+  fail "restart passed --permission"
+fi
+stop_run
+rm -f "${GROKBOT_HOME}/permission"
 
 unset GROKBOT_FAKE_COUNT
 write_options info

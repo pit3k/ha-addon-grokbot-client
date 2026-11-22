@@ -9,8 +9,10 @@
   var urlInput = document.getElementById("login-url");
   var copy = document.getElementById("copy");
   var signout = document.getElementById("signout");
+  var permission = document.getElementById("permission");
   var lastUrl = "";
   var wasWaiting = false;
+  var permissionSet = false;
   var qrTimer = 0;
 
   function show(el, on) {
@@ -41,11 +43,20 @@
     show(link, waiting);
     show(qr, waiting);
     show(row, waiting);
+    show(permission, waiting);
     show(signout, connected);
     if (!waiting) {
       clearTimeout(qrTimer);
       wasWaiting = false;
+      permissionSet = false;
       return;
+    }
+    if (!permissionSet) {
+      var chosen = permission.querySelector('input[value="' + (data.permission || "always") + '"]');
+      if (chosen) {
+        chosen.checked = true;
+      }
+      permissionSet = true;
     }
     link.href = url;
     urlInput.value = url;
@@ -69,6 +80,13 @@
   copy.addEventListener("click", function () {
     urlInput.select();
     document.execCommand("copy");
+  });
+  permission.addEventListener("change", function (event) {
+    fetch("cgi-bin/permission", {
+      method: "POST",
+      headers: { "X-Grokbot-Panel": "1" },
+      body: event.target.value
+    });
   });
   signout.addEventListener("click", function () {
     signout.hidden = true;

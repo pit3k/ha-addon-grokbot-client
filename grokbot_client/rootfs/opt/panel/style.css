@@ -21,6 +21,9 @@ main {
 }
 
 #status { margin: 0 0 12px; font-size: 1.25rem; font-weight: 650; }
+#permission { margin: 0 0 12px; padding: 8px 12px 4px; border: 1px solid #c9c4ba; border-radius: 8px; text-align: left; }
+#permission label { display: block; margin: 4px 0; }
+#permission p { margin: 8px 0 4px; font-size: 0.875rem; }
 #account { margin: 0 0 12px; }
 #qr { display: block; width: 200px; height: auto; margin: 0 auto 12px; background: #fff; }
 
@@ -69,5 +72,6 @@ input {
   body { background: #161815; color: #eceae4; }
   main { background: #232622; }
   input { background: #161815; color: inherit; border-color: #3c403b; }
+  #permission { border-color: #3c403b; }
   #copy, #signout { border-color: #8d8a82; }
 }
