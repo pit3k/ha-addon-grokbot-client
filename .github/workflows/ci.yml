@@ -15,7 +15,7 @@ jobs:
     name: App config
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Lint the app configuration
         uses: frenck/action-addon-linter@v2.21.2
         with:
@@ -25,7 +25,7 @@ jobs:
     name: ShellCheck and script tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Install tools
         run: sudo apt-get update && sudo apt-get install -y shellcheck jq busybox
       - name: Run tests
@@ -47,7 +47,7 @@ jobs:
       contents: read
       packages: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Read the app version
         id: version
