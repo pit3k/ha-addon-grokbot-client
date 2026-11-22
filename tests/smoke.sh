@@ -33,10 +33,8 @@ printf '%s\n' '{"permission":"always","label":"ha","auto_update":false}' > "${wo
 
 docker run -d --name "$name" \
   -v "${work}/data:/data" \
-  -p 127.0.0.1::8099 \
   "$image" >/dev/null
 
-port=$(docker port "$name" 8099/tcp | awk -F: 'NR==1 { print $NF }')
 fail() {
   printf 'FAIL: %s\n' "$*" >&2
   docker logs "$name" >&2 || true
@@ -45,7 +43,7 @@ fail() {
 
 page=""
 for _ in $(seq 1 40); do
-  if page=$(curl -fsS "http://127.0.0.1:${port}/" 2>/dev/null); then
+  if page=$(docker exec "$name" curl -fsS "http://127.0.0.1:8099/" 2>/dev/null); then
     break
   fi
   sleep 0.5
@@ -56,7 +54,7 @@ grep -q 'id="signout"' <<<"$page" || fail "panel page has no sign-out button"
 
 status=""
 for _ in $(seq 1 40); do
-  status=$(curl -fsS "http://127.0.0.1:${port}/api/status" 2>/dev/null || true)
+  status=$(docker exec "$name" curl -fsS "http://127.0.0.1:8099/cgi-bin/status" 2>/dev/null || true)
   if [[ "$(jq -r '.status' <<<"$status" 2>/dev/null || true)" == "Waiting for sign-in" ]]; then
     break
   fi
@@ -74,5 +72,9 @@ fi
 if grep -q "super-secret-token-value" <<<"$logs"; then
   fail "log contains a token"
 fi
+
+ip=$(docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}}{{end}}' "$name")
+denied=$(docker run --rm --network bridge --entrypoint wget "$image" -S -O /dev/null "http://${ip}:8099/cgi-bin/status" 2>&1 || true)
+grep -q '403 Forbidden' <<<"$denied" || fail "a non-ingress address was not refused"
 
 printf '%s\n' "smoke test passed"

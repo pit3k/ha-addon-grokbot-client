@@ -135,7 +135,7 @@ grok_main() {
   while true; do
     local permission="" label="" auto_update="" cmd="" version="" rc=0 error=""
     permission=$(grok_normalize_permission "$(grok_option permission always)")
-    label=$(grok_normalize_label "$(grok_option label ha)")
+    label=$(grok_normalize_label "$(grok_option label homeassistant)")
     auto_update=$(grok_option auto_update true)
 
     if cmd=$(grok_take_control); then

@@ -106,5 +106,6 @@ grok_forwards_client_log && fail "warning forwards the client log"
 printf '%s\n' '{"log_level":"debug"}' > "$GROKBOT_OPTIONS_FILE"
 grok_forwards_client_log || fail "debug does not forward the client log"
 [[ "$(grok_normalize_log_level "$(grok_option log_level info)")" == "debug" ]] || fail "debug level"
+[[ "$(grok_normalize_label "")" == "homeassistant" ]] || fail "blank computer name"
 
 printf '%s\n' "login tests passed"

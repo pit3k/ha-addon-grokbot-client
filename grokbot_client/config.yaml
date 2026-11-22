@@ -28,7 +28,7 @@ map:
     read_only: true
 options:
   permission: always
-  label: ha
+  label: homeassistant
   auto_update: true
   log_level: info
 schema:

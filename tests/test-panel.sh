@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# The panel binary serves the page and accepts sign-in controls.
+# BusyBox httpd serves the page. A CGI script answers status and sign-out.
 set -euo pipefail
 
 root="$(cd "$(dirname -- "$0")/.." && pwd)"
+panel="${root}/grokbot_client/rootfs/opt/panel"
+conf="${root}/grokbot_client/rootfs/etc/grokbot/httpd.conf"
 work=$(mktemp -d)
 pid=""
 cleanup() {
@@ -14,11 +16,12 @@ cleanup() {
 }
 trap cleanup EXIT
 
-gcc -std=c11 -Os -Wall -Wextra -Werror \
-  -o "${work}/panel" "${root}/grokbot_client/panel/server.c"
+if command -v httpd >/dev/null 2>&1; then
+  httpd=(httpd)
+else
+  httpd=(busybox httpd)
+fi
 
-export GROKBOT_PANEL_PORT=0
-# Pick a free port by binding from python, then reuse it. The server binds a fixed port.
 port=$(python3 - <<'PY'
 import socket
 s = socket.socket()
@@ -27,17 +30,19 @@ print(s.getsockname()[1])
 s.close()
 PY
 )
-export GROKBOT_PANEL_PORT="$port"
-export GROKBOT_PANEL_ROOT="${root}/grokbot_client/rootfs/opt/panel"
 export GROKBOT_STATE_DIR="${work}/run"
-mkdir -p "$GROKBOT_STATE_DIR"
+mkdir -p "${work}/www/cgi-bin" "$GROKBOT_STATE_DIR"
+ln -s "${panel}/index.html" "${panel}/style.css" "${panel}/app.js" "${work}/www/"
+ln -s "${panel}/cgi-bin/status" "${work}/www/cgi-bin/status"
+ln -s status "${work}/www/cgi-bin/sign-out"
+ln -s "${GROKBOT_STATE_DIR}/qr.svg" "${work}/www/qr.svg"
 jq -n \
   --arg status "Waiting for sign-in" \
   --arg url "https://example.test/loginDeepControl?challenge=abc" \
   '{state:"waiting",status:$status,login_url:$url,error:"",detail:"",version:"grokbot-tunnel v9.9.9 (test)",email:"",label:"ha"}' \
   > "${GROKBOT_STATE_DIR}/status.json"
 
-"${work}/panel" &
+"${httpd[@]}" -f -p "127.0.0.1:${port}" -h "${work}/www" -c "$conf" &
 pid=$!
 for _ in 1 2 3 4 5 6 7 8 9 10; do
   if curl -fsS "http://127.0.0.1:${port}/" >/dev/null 2>&1; then
@@ -50,6 +55,10 @@ fail() {
   printf 'FAIL: %s\n' "$*" >&2
   exit 1
 }
+
+grep -q '^A:172.30.32.2$' "$conf" || fail "ingress address is not allowed"
+grep -q '^A:127.0.0.1$' "$conf" || fail "health check address is not allowed"
+grep -q '^D:\*$' "$conf" || fail "other addresses are not denied"
 
 page=$(curl -fsS "http://127.0.0.1:${port}/")
 grep -q "Grok Bot client" <<<"$page" || fail "page title missing"
@@ -66,6 +75,8 @@ grep -q 'prefers-color-scheme: dark' <<<"$css" || fail "dark scheme missing"
 js=$(curl -fsS "http://127.0.0.1:${port}/app.js")
 grep -q 'show(signout, connected)' <<<"$js" || fail "Sign out is not limited to connected"
 grep -q 'addEventListener("error"' <<<"$js" || fail "QR load is not retried"
+grep -q 'cgi-bin/status' <<<"$js" || fail "status URL missing"
+grep -q 'cgi-bin/sign-out' <<<"$js" || fail "sign-out URL missing"
 if grep -q 'api/sign-in' <<<"$js"; then
   fail "panel still requests sign-in"
 fi
@@ -92,30 +103,18 @@ served=$(curl -fsS -o "${work}/qr-big.svg" -w '%{size_download}' "http://127.0.0
 [[ "$served" == "$size" ]] || fail "large qr truncated ${served} != ${size}"
 grep -q '</svg>' "${work}/qr-big.svg" || fail "large qr was cut off"
 
-status=$(curl -fsS "http://127.0.0.1:${port}/api/status")
+status=$(curl -fsS "http://127.0.0.1:${port}/cgi-bin/status")
 [[ "$(jq -r '.status' <<<"$status")" == "Waiting for sign-in" ]] || fail "status payload"
 [[ "$(jq -r '.login_url' <<<"$status")" == https://example.test/* ]] || fail "status url"
+rm -f "${GROKBOT_STATE_DIR}/status.json"
+status=$(curl -fsS "http://127.0.0.1:${port}/cgi-bin/status")
+[[ "$(jq -r '.state' <<<"$status")" == "starting" ]] || fail "missing status file"
 
-code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:${port}/api/sign-out")
+code=$(curl -s -o /dev/null -w '%{http_code}' -X POST "http://127.0.0.1:${port}/cgi-bin/sign-out")
 [[ "$code" == "403" ]] || fail "missing panel header was ${code}"
-
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
   -H "X-Grokbot-Panel: 1" \
-  "http://127.0.0.1:${port}/api/sign-in")
-[[ "$code" == "204" ]] || fail "sign-in returned ${code}"
-[[ "$(tr -d '[:space:]' < "${GROKBOT_STATE_DIR}/control")" == "sign-in" ]] || fail "control file"
-rm -f "${GROKBOT_STATE_DIR}/control"
-
-jq -n '{state:"connected",status:"Connected as ha",login_url:"",error:"",detail:"",version:"v",email:"owner@example.com",label:"ha"}' \
-  > "${GROKBOT_STATE_DIR}/status.json"
-code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
-  -H "X-Grokbot-Panel: 1" \
-  "http://127.0.0.1:${port}/api/sign-in")
-[[ "$code" == "204" ]] || fail "connected sign-in returned ${code}"
-[[ ! -e "${GROKBOT_STATE_DIR}/control" ]] || fail "connected sign-in wrote a control file"
-code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \
-  -H "X-Grokbot-Panel: 1" \
-  "http://127.0.0.1:${port}/api/sign-out")
+  "http://127.0.0.1:${port}/cgi-bin/sign-out")
 [[ "$code" == "204" ]] || fail "sign-out returned ${code}"
 [[ "$(tr -d '[:space:]' < "${GROKBOT_STATE_DIR}/control")" == "sign-out" ]] || fail "sign-out control"
 

@@ -17,6 +17,7 @@ shellcheck -s bash -S warning \
   grokbot_client/rootfs/etc/s6-overlay/s6-rc.d/grokbot/finish \
   grokbot_client/rootfs/etc/s6-overlay/s6-rc.d/panel/run \
   grokbot_client/rootfs/etc/s6-overlay/s6-rc.d/panel/finish \
+  grokbot_client/rootfs/opt/panel/cgi-bin/status \
   tests/test-update.sh \
   tests/test-login.sh \
   tests/test-session.sh \

@@ -4,8 +4,6 @@ ARG BUILD_ARCH=amd64
 ARG BUILD_VERSION=0.1.0
 ARG HA_CLI_VERSION=6.0.0
 
-COPY panel/server.c /tmp/grokbot-panel.c
-
 RUN apk add --no-cache \
         bash \
         curl \
@@ -17,10 +15,7 @@ RUN apk add --no-cache \
         ripgrep \
         openssh-client \
         libqrencode-tools \
-    && apk add --no-cache --virtual .panel-build build-base \
-    && gcc -std=c11 -Os -s -Wall -Wextra -Werror -o /usr/bin/grokbot-panel /tmp/grokbot-panel.c \
-    && rm /tmp/grokbot-panel.c \
-    && apk del .panel-build \
+        busybox-extras \
     && curl -fsSL -o /usr/bin/ha \
         "https://github.com/home-assistant/cli/releases/download/${HA_CLI_VERSION}/ha_${BUILD_ARCH}" \
     && chmod 0755 /usr/bin/ha \
@@ -34,7 +29,8 @@ RUN chmod 0755 \
         /etc/s6-overlay/s6-rc.d/grokbot/run \
         /etc/s6-overlay/s6-rc.d/grokbot/finish \
         /etc/s6-overlay/s6-rc.d/panel/run \
-        /etc/s6-overlay/s6-rc.d/panel/finish
+        /etc/s6-overlay/s6-rc.d/panel/finish \
+        /opt/panel/cgi-bin/status
 
 LABEL \
     io.hass.name="Grok Bot client" \
@@ -54,4 +50,4 @@ ENV HOME=/data \
 # The app linter rejects the old watchdog key. This check is the replacement:
 # the panel's status URL answers only after the panel process is up.
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -fsS http://127.0.0.1:8099/api/status >/dev/null || exit 1
+    CMD curl -fsS http://127.0.0.1:8099/cgi-bin/status >/dev/null || exit 1

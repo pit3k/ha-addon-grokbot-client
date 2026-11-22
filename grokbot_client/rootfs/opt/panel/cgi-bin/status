@@ -1,0 +1,25 @@
+#!/bin/sh
+# BusyBox httpd only runs CGI under /cgi-bin. sign-out is a link to this script.
+state=${GROKBOT_STATE_DIR:-/run/grokbot}
+name=${SCRIPT_NAME##*/}
+
+if [ "$name" = status ]; then
+  printf '%s\r\n' 'Content-Type: application/json' ''
+  if [ -f "$state/status.json" ]; then
+    cat "$state/status.json"
+  else
+    printf '%s\n' '{"state":"starting","status":"Not signed in","login_url":"","error":"","detail":"Starting","version":"","email":"","label":""}'
+  fi
+  exit 0
+fi
+
+if [ "$name" != sign-out ] || [ "${REQUEST_METHOD:-}" != POST ] || [ -z "${HTTP_X_GROKBOT_PANEL:-}" ]; then
+  printf '%s\r\n' 'Status: 403 Forbidden' 'Content-Type: text/plain' '' 'forbidden'
+  exit 0
+fi
+
+mkdir -p "$state"
+tmp=$(mktemp "$state/control.XXXXXX")
+printf '%s\n' sign-out > "$tmp"
+mv -f "$tmp" "$state/control"
+printf '%s\r\n' 'Status: 204 No Content' ''

@@ -16,7 +16,7 @@ Always-on [grokbot-tunnel](https://github.com/exa-pub/grokbot-tunnel) for Home A
 
 4. Install **Grok Bot client**, then start it.
 5. Open **Grok Bot** in the sidebar (administrators only).
-6. Use **Click to sign in**, copy the link, or scan the QR code, and approve the page in a browser. The panel switches to **Connected as ha**.
+6. Use **Click to sign in**, copy the link, or scan the QR code, and approve the page in a browser. The panel switches to **Connected as homeassistant**.
 
 A notification carries the same link until sign-in completes. The link is also printed once in the app log.
 
@@ -28,7 +28,7 @@ Full options, permission behavior, and security notes are in [grokbot_client/DOC
 
 When log level is `debug`, `--debug` is added. That is grokbot-tunnel's own switch for the raw request log.
 
-`permission` is `always` (default) or `ask`. `label` defaults to `ha`. The binary is installed in `/data/.local/bin`, with `HOME=/data`, so the login is stored in `/data/.grok/bot-tunnel` and is part of this app's backups.
+`permission` is `always` (default) or `ask`. `label` defaults to `homeassistant`. The binary is installed in `/data/.local/bin`, with `HOME=/data`, so the login is stored in `/data/.grok/bot-tunnel` and is part of this app's backups.
 
 On startup the app downloads the latest grokbot-tunnel release, verifies `checksums.txt` when that file is published, and keeps the previous binary if the download fails.
 

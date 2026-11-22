@@ -104,7 +104,7 @@ grok_normalize_label() {
   label=${label#"${label%%[![:space:]]*}"}
   label=${label%"${label##*[![:space:]]}"}
   if [[ -z "$label" ]]; then
-    label="ha"
+    label="homeassistant"
   fi
   printf '%s\n' "${label:0:100}"
 }

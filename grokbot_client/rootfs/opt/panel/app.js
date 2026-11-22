@@ -57,7 +57,7 @@
   }
 
   function refresh() {
-    fetch("api/status", { cache: "no-store" })
+    fetch("cgi-bin/status", { cache: "no-store" })
       .then(function (response) { return response.json(); })
       .then(render)
       .catch(function () {
@@ -72,7 +72,7 @@
   });
   signout.addEventListener("click", function () {
     signout.hidden = true;
-    fetch("api/sign-out", { method: "POST", headers: { "X-Grokbot-Panel": "1" } }).finally(refresh);
+    fetch("cgi-bin/sign-out", { method: "POST", headers: { "X-Grokbot-Panel": "1" } }).finally(refresh);
   });
   refresh();
   setInterval(refresh, 2000);

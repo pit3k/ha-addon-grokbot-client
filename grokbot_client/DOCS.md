@@ -16,13 +16,13 @@ The client is an independent project. It is not affiliated with or endorsed by x
 
 4. When the page says **Waiting for sign-in**, use **Click to sign in**, copy the link, or scan the QR code. Approve the request in the browser. You can use a phone.
 
-5. The page changes to **Connected as ha** (or the computer name you set). The same computer shows up in Grok Bot.
+5. The page changes to **Connected as homeassistant** (or the computer name you set). The same computer shows up in Grok Bot.
 
 A notification with the same link appears until sign-in finishes. If the panel is not open yet, the link is also written once to the app log.
 
 Home Assistant OS from 2026.7 or later is required. The folder map uses the current names (`homeassistant_config`, `all_app_configs`).
 
-Boot is automatic and the app does not use the host network. Those are the Home Assistant defaults, so `config.yaml` does not repeat them. The panel listens on port 8099, also the default. The image health check requests `http://127.0.0.1:8099/api/status`. The sidebar entry is limited to administrators, which is the default for an ingress panel.
+Boot is automatic and the app does not use the host network. Those are the Home Assistant defaults, so `config.yaml` does not repeat them. The panel listens on port 8099, also the default, and accepts only `172.30.32.2` (Home Assistant ingress) and `127.0.0.1` (the image health check, `http://127.0.0.1:8099/cgi-bin/status`). The sidebar entry is limited to administrators, which is the default for an ingress panel.
 
 ## Sign out
 
@@ -33,7 +33,7 @@ While the page is waiting, it shows the status, the QR code, and the sign-in lin
 | Option | Default | Meaning |
 | --- | --- | --- |
 | Permission | `always` | `always` runs every action the agent requests. `ask` runs only actions approved in Grok Bot. |
-| Computer name | `ha` | Name of this system in Grok Bot, at most 100 characters. |
+| Computer name | `homeassistant` | Name of this system in Grok Bot, at most 100 characters. |
 | Update the client automatically | on | On startup, download a newer grokbot-tunnel release. A failed download keeps the last client that ran. |
 | Log level | `info` | `debug` runs the client with `--debug` and forwards every line it prints, including each raw request. `info` forwards the normal client log, which already names each request. `warning` and `error` do not forward that log. Tokens are left out at every level. |
 
