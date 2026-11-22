@@ -30,6 +30,8 @@ While the page is waiting, it shows the status, the QR code, and the sign-in lin
 
 ## Options
 
+The app runs `grokbot-tunnel connect --permission <permission> --label <label> --root /`.
+
 | Option | Default | Meaning |
 | --- | --- | --- |
 | Permission | `always` | `always` runs every action the agent requests. `ask` runs only actions approved in Grok Bot. |
