@@ -16,11 +16,13 @@ grok_run_login() {
   version=$(grok_installed_version)
   : >"$out"
   : >"$err"
+  export GROKBOT_LOG_OFFSET=0
   chmod 600 "$out" "$err" || true
   grok_write_status "waiting" "Waiting for sign-in" "" "" "$version" "" "$label" "Preparing the sign-in link…"
   grok_spawn_redirect "$out" "$err" "$GROKBOT_BIN" login --no-browser
   pid="$GROKBOT_CHILD"
   while kill -0 "$pid" 2>/dev/null; do
+    grok_forward_log "$err"
     if grok_signin_is_harmless; then
       continue
     fi
@@ -45,6 +47,7 @@ grok_run_login() {
     sleep 1
   done
   wait "$pid" || rc=$?
+  grok_forward_log "$err"
   GROKBOT_CHILD=0
   rm -f "${GROKBOT_STATE_DIR}/child.pid"
   if grok_logged_in; then
@@ -57,9 +60,11 @@ grok_run_login() {
   fi
   if [[ -z "$error" ]]; then
     error="Sign-in did not finish (exit ${rc}). A new link will be prepared."
+    grok_log error "$error"
+  elif ! grok_forwards_client_log; then
+    grok_log error "$error"
   fi
   grok_write_status "signed_out" "Not signed in" "" "$error" "$version" "" "$label" ""
-  grok_log warning "$error"
   return 1
 }
 
@@ -68,28 +73,36 @@ grok_run_connect() {
   local label="$2"
   local err="${GROKBOT_STATE_DIR}/connect.err"
   local version email started rc=0
+  local debug=()
   version=$(grok_installed_version)
   email=$(grok_account_email)
   : >"$err"
+  export GROKBOT_LOG_OFFSET=0
   chmod 600 "$err" || true
-  rm -f "${GROKBOT_STATE_DIR}/qr.svg"
   grok_write_status "connected" "Connected as ${label}" "" "" "$version" "$email" "$label" ""
+  rm -f "${GROKBOT_STATE_DIR}/qr.svg"
   grok_dismiss_notification || true
   grok_log info "Connecting as ${label} with permission ${permission}."
   started=$SECONDS
+  if [[ "$(grok_normalize_log_level "$(grok_option log_level info)")" == "debug" ]]; then
+    debug=(--debug)
+  fi
   grok_spawn_redirect /dev/null "$err" "$GROKBOT_BIN" connect \
     --permission "$permission" \
     --label "$label" \
-    --root /
-  grok_wait_child || rc=$?
+    --root / \
+    "${debug[@]}"
+  grok_wait_child "$err" || rc=$?
   GROKBOT_LAST_RUN_SECONDS=$((SECONDS - started))
   return "$rc"
 }
 
 grok_wait_child() {
+  local err="$1"
   local pid="$GROKBOT_CHILD"
   local rc=0
   while kill -0 "$pid" 2>/dev/null; do
+    grok_forward_log "$err"
     if grok_signin_is_harmless; then
       continue
     fi
@@ -100,6 +113,7 @@ grok_wait_child() {
     sleep 1
   done
   wait "$pid" || rc=$?
+  grok_forward_log "$err"
   GROKBOT_CHILD=0
   rm -f "${GROKBOT_STATE_DIR}/child.pid"
   return "$rc"
@@ -128,6 +142,7 @@ grok_main() {
       grok_log info "Panel requested ${cmd}."
       if [[ "$cmd" == "sign-out" ]]; then
         grok_kill_child
+        grok_write_status "signed_out" "Not signed in" "" "" "$(grok_installed_version)" "" "$label" ""
         grok_wipe_login
         grok_dismiss_notification || true
       elif grok_logged_in; then
@@ -178,17 +193,21 @@ grok_main() {
     if [[ "$rc" -eq 78 ]] || ! grok_logged_in; then
       if [[ -z "$error" ]]; then
         error="The session ended. Sign in again."
+        grok_log error "$error"
+      elif ! grok_forwards_client_log; then
+        grok_log error "$error"
       fi
       grok_write_status "signed_out" "Not signed in" "" "$error" "$version" "" "$label" ""
-      grok_log warning "$error"
       backoff=2
       continue
     fi
     if [[ -z "$error" ]]; then
       error="The client stopped (exit ${rc}) and will restart."
+      grok_log error "$error"
+    elif ! grok_forwards_client_log; then
+      grok_log error "$error"
     fi
     grok_write_status "restarting" "Connected as ${label}" "" "$error" "$version" "$(grok_account_email)" "$label" ""
-    grok_log warning "$error"
     if ! grok_sleep "$backoff"; then
       continue
     fi

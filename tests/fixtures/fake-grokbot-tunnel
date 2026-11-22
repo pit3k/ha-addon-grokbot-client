@@ -36,10 +36,15 @@ fi
 
 if [ "$cmd" = "connect" ]; then
   auth="${HOME}/.grok/bot-tunnel/auth.json"
+  if [ -n "${GROKBOT_ARGS_FILE:-}" ]; then
+    printf '%s\n' "$*" > "$GROKBOT_ARGS_FILE"
+  fi
   if [ ! -f "$auth" ]; then
     printf '%s\n' "not logged in; run grokbot-tunnel login" >&2
     exit 78
   fi
+  printf '%s\n' "request 1: echo hi" >&2
+  printf '%s\n' "refresh_token=super-secret-token-value" >&2
   printf '%s\n' "connected" >&2
   while true; do
     sleep 0.2

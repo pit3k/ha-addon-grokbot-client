@@ -54,19 +54,36 @@ fail() {
 page=$(curl -fsS "http://127.0.0.1:${port}/")
 grep -q "Grok Bot client" <<<"$page" || fail "page title missing"
 grep -q 'id="signout"[^>]*hidden' <<<"$page" || fail "Sign out starts visible"
-if grep -q 'signin-start\|Sign in' <<<"$page"; then
-  fail "panel still has a Sign in button"
-fi
+grep -q 'Click to sign in' <<<"$page" || fail "sign-in link missing"
+grep -q 'id="copy"[^>]*hidden' <<<"$page" || fail "Copy starts visible"
 buttons=$(grep -c '<button' <<<"$page")
-[[ "$buttons" == "1" ]] || fail "expected one button, found ${buttons}"
+[[ "$buttons" == "2" ]] || fail "expected two buttons, found ${buttons}"
 css=$(curl -fsS "http://127.0.0.1:${port}/style.css")
 grep -q '\[hidden\]' <<<"$css" || fail "hidden rule missing"
 grep -q 'display: none !important' <<<"$css" || fail "hidden does not override display"
+grep -q 'prefers-color-scheme: dark' <<<"$css" || fail "dark scheme missing"
 js=$(curl -fsS "http://127.0.0.1:${port}/app.js")
 grep -q 'show(signout, connected)' <<<"$js" || fail "Sign out is not limited to connected"
+grep -q 'addEventListener("error"' <<<"$js" || fail "QR load is not retried"
 if grep -q 'api/sign-in' <<<"$js"; then
   fail "panel still requests sign-in"
 fi
+
+code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${port}/qr.svg")
+[[ "$code" == "404" ]] || fail "missing qr returned ${code}"
+printf '%s\n' '<svg xmlns="http://www.w3.org/2000/svg"></svg>' > "${GROKBOT_STATE_DIR}/qr.svg"
+curl -fsS -D "${work}/qr.hdr" -o "${work}/qr.body" "http://127.0.0.1:${port}/qr.svg"
+grep -qi 'image/svg+xml' "${work}/qr.hdr" || fail "qr content type"
+if grep -qi 'Content-Security-Policy' "${work}/qr.hdr"; then
+  fail "qr response carries the page policy"
+fi
+grep -q '<svg' "${work}/qr.body" || fail "qr body"
+rm -f "${GROKBOT_STATE_DIR}/qr.svg"
+code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${port}/qr.svg")
+[[ "$code" == "404" ]] || fail "removed qr returned ${code}"
+printf '%s\n' '<svg xmlns="http://www.w3.org/2000/svg" id="again"></svg>' > "${GROKBOT_STATE_DIR}/qr.svg"
+body=$(curl -fsS "http://127.0.0.1:${port}/qr.svg?t=2")
+grep -q 'id="again"' <<<"$body" || fail "qr was not served again"
 
 status=$(curl -fsS "http://127.0.0.1:${port}/api/status")
 [[ "$(jq -r '.status' <<<"$status")" == "Waiting for sign-in" ]] || fail "status payload"

@@ -1,5 +1,13 @@
-# Grok Bot client
+# Home Assistant App: Grok Bot client
 
-Home Assistant app that runs [grokbot-tunnel](https://github.com/exa-pub/grokbot-tunnel).
+Runs grokbot-tunnel so a Grok Bot agent can use this Home Assistant system.
 
-Install and sign-in steps are in [DOCS.md](DOCS.md). The repository overview is in the [root README](../README.md).
+![Supports aarch64 Architecture][aarch64-shield] ![Supports amd64 Architecture][amd64-shield]
+
+## About
+
+This app runs [grokbot-tunnel] in Home Assistant and keeps a tunnel open to Grok Bot. Sign in from the panel with the link or the QR code. The permission option decides whether the agent runs every requested action or only actions you approve in Grok Bot. The agent can read and change the Home Assistant configuration, other apps' configuration, shared files, and backups, and it can run commands here, including `ha`.
+
+[grokbot-tunnel]: https://github.com/exa-pub/grokbot-tunnel
+[aarch64-shield]: https://img.shields.io/badge/aarch64-yes-green.svg
+[amd64-shield]: https://img.shields.io/badge/amd64-yes-green.svg

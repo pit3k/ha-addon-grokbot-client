@@ -30,8 +30,10 @@ options:
   permission: always
   label: ha
   auto_update: true
+  log_level: info
 schema:
   permission: list(always|ask)
   label: str
   auto_update: bool
+  log_level: list(debug|info|warning|error)
 image: ghcr.io/pit3k/{arch}-addon-grokbot-client

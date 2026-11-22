@@ -20,6 +20,7 @@ shellcheck -s bash -S warning \
   tests/test-update.sh \
   tests/test-login.sh \
   tests/test-session.sh \
+  tests/test-log.sh \
   tests/test-panel.sh \
   tests/test-redact-alpine.sh \
   tests/smoke.sh \
@@ -30,6 +31,7 @@ tests/test-login.sh
 tests/test-update.sh
 tests/test-panel.sh
 tests/test-session.sh
+tests/test-log.sh
 tests/test-redact-alpine.sh
 
 printf '%s\n' "all host tests passed"

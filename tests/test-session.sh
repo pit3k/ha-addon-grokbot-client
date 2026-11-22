@@ -112,5 +112,9 @@ done
 [[ -n "$url" ]] || fail "sign-out did not return to a sign-in link"
 [[ ! -e "${GROKBOT_STORE}/auth.json" ]] || fail "auth.json survived sign-out"
 grep -F "Sign-in link: ${url}" "${work}/log" >/dev/null || fail "sign-in link was not mirrored to the log"
+grep -q "request 1: echo hi" "${work}/log" || fail "info log missed the client request"
+if grep -q "refresh_token" "${work}/log"; then
+  fail "client log kept a token"
+fi
 
 printf '%s\n' "session tests passed"

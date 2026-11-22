@@ -47,16 +47,22 @@ static int write_all(int fd, const char *buf, size_t len) {
 
 static void respond(int fd, int code, const char *reason, const char *type, const char *body, size_t len) {
   char header[768];
+  /* An SVG response must not carry the page policy. With nosniff, that policy
+   * makes the browser refuse to paint the QR. */
+  const char *csp = "";
+  if (strncmp(type, "image/", 6) != 0) {
+    csp = "Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self'\r\n";
+  }
   int n = snprintf(header, sizeof header,
                    "HTTP/1.1 %d %s\r\n"
                    "Content-Type: %s\r\n"
                    "Content-Length: %zu\r\n"
                    "Cache-Control: no-store\r\n"
                    "X-Content-Type-Options: nosniff\r\n"
-                   "Content-Security-Policy: default-src 'self'; img-src 'self' data:; style-src 'self'\r\n"
+                   "%s"
                    "Connection: close\r\n"
                    "\r\n",
-                   code, reason, type, len);
+                   code, reason, type, len, csp);
   if (n < 0 || (size_t)n >= sizeof header) {
     return;
   }
@@ -248,7 +254,7 @@ static void serve_qr(int fd) {
   char path[PATH_MAX];
   char buf[65536];
   int file;
-  ssize_t n;
+  size_t got = 0;
 
   if (snprintf(path, sizeof path, "%s/qr.svg", state_dir) >= (int)sizeof path) {
     respond(fd, 404, "Not Found", "text/plain; charset=utf-8", "not found\n", 10);
@@ -259,13 +265,27 @@ static void serve_qr(int fd) {
     respond(fd, 404, "Not Found", "text/plain; charset=utf-8", "not found\n", 10);
     return;
   }
-  n = read(file, buf, sizeof buf);
+  while (got < sizeof buf) {
+    ssize_t n = read(file, buf + got, sizeof buf - got);
+    if (n < 0) {
+      if (errno == EINTR) {
+        continue;
+      }
+      close(file);
+      respond(fd, 404, "Not Found", "text/plain; charset=utf-8", "not found\n", 10);
+      return;
+    }
+    if (n == 0) {
+      break;
+    }
+    got += (size_t)n;
+  }
   close(file);
-  if (n < 0) {
+  if (got == 0) {
     respond(fd, 404, "Not Found", "text/plain; charset=utf-8", "not found\n", 10);
     return;
   }
-  respond(fd, 200, "OK", "image/svg+xml", buf, (size_t)n);
+  respond(fd, 200, "OK", "image/svg+xml", buf, got);
 }
 
 static int write_control(const char *command) {

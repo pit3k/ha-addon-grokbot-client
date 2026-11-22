@@ -13,9 +13,41 @@ grok_store_dir() {
   printf '%s\n' "${GROKBOT_STORE:-${HOME}/.grok/bot-tunnel}"
 }
 
+grok_normalize_log_level() {
+  case "$1" in
+    debug | info | warning | error) printf '%s\n' "$1" ;;
+    *) printf '%s\n' info ;;
+  esac
+}
+
+grok_log_rank() {
+  case "$1" in
+    debug) printf '%s\n' 0 ;;
+    info) printf '%s\n' 1 ;;
+    warning) printf '%s\n' 2 ;;
+    error) printf '%s\n' 3 ;;
+    *) printf '%s\n' 1 ;;
+  esac
+}
+
+# debug and info forward the client log. debug also passes --debug.
+grok_forwards_client_log() {
+  case "$(grok_normalize_log_level "$(grok_option log_level info)")" in
+    debug | info) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 grok_log() {
   local level="$1"
+  local configured message_rank configured_rank
   shift
+  configured=$(grok_normalize_log_level "$(grok_option log_level info)")
+  message_rank=$(grok_log_rank "$level")
+  configured_rank=$(grok_log_rank "$configured")
+  if [[ "$message_rank" -lt "$configured_rank" ]]; then
+    return 0
+  fi
   # The s6 run file is interpreted by bashio, then execs this script in a new
   # shell. The bashio:: functions are not loaded here. A command named bashio
   # existing on PATH is not enough: calling bashio::log would print
@@ -124,17 +156,44 @@ grok_wipe_login() {
 }
 
 # Drop secret lines. BusyBox sed rejects the GNU /I flag, so this uses grep -i.
-grok_redact_text() {
+grok_redact_lines() {
   grep -viE 'refresh_token|access_token|authorization:[[:space:]]*bearer|eyJ[A-Za-z0-9_-]{8,}[.][A-Za-z0-9_-]{8,}' \
-    | tr '\n' ' ' \
-    | cut -c1-500 || true
+    | cut -c1-2000 || true
+}
+
+grok_redact_text() {
+  grok_redact_lines | tr '\n' ' ' | cut -c1-500 || true
+}
+
+# Copy new client stderr into the app log. The offset is bytes already copied.
+grok_forward_log() {
+  local file="$1"
+  local start="${GROKBOT_LOG_OFFSET:-0}"
+  local size=0
+  [[ -f "$file" ]] || return 0
+  grok_forwards_client_log || return 0
+  size=$(wc -c <"$file" 2>/dev/null | tr -d '[:space:]' || echo 0)
+  [[ "$size" =~ ^[0-9]+$ ]] || return 0
+  if [[ "$size" -le "$start" ]]; then
+    return 0
+  fi
+  tail -c +$((start + 1)) "$file" | grok_redact_lines | while IFS= read -r line || [[ -n "$line" ]]; do
+    [[ -n "$line" ]] && grok_log info "$line"
+  done || true
+  export GROKBOT_LOG_OFFSET=$size
 }
 
 grok_write_qr() {
   local url="$1"
   local out="${GROKBOT_STATE_DIR}/qr.svg"
+  local tmp=""
   command -v qrencode >/dev/null 2>&1 || return 0
-  qrencode -t SVG -o "$out" -m 2 "$url" || rm -f "$out"
+  tmp=$(mktemp "${GROKBOT_STATE_DIR}/qr.XXXXXX") || return 0
+  if qrencode -t SVG -o "$tmp" -m 2 "$url"; then
+    mv -f "$tmp" "$out"
+  else
+    rm -f "$tmp" "$out"
+  fi
 }
 
 # A Sign in click while a session exists must not stop the tunnel.

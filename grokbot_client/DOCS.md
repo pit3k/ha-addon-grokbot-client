@@ -14,7 +14,7 @@ The client is an independent project. It is not affiliated with or endorsed by x
 
 3. Open **Grok Bot** in the sidebar. Only administrators see that panel.
 
-4. When the page says **Waiting for sign-in**, open the link or scan the QR code. Approve the request in the browser. You can use a phone.
+4. When the page says **Waiting for sign-in**, use **Click to sign in**, copy the link, or scan the QR code. Approve the request in the browser. You can use a phone.
 
 5. The page changes to **Connected as ha** (or the computer name you set). The same computer shows up in Grok Bot.
 
@@ -35,6 +35,7 @@ While the page is waiting, it shows the status, the QR code, and the sign-in lin
 | Permission | `always` | `always` runs every action the agent requests. `ask` runs only actions approved in Grok Bot. |
 | Computer name | `ha` | Name of this system in Grok Bot, at most 100 characters. |
 | Update the client automatically | on | On startup, download a newer grokbot-tunnel release. A failed download keeps the last client that ran. |
+| Log level | `info` | `debug` runs the client with `--debug` and forwards every line it prints, including each raw request. `info` forwards the normal client log, which already names each request. `warning` and `error` do not forward that log. Tokens are left out at every level. |
 
 `ask` has no terminal in this app. An action that Grok Bot does not approve is refused. It does not wait for a keypress. With `always`, the agent runs commands without asking.
 

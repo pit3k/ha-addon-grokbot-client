@@ -81,4 +81,30 @@ if grep -q "eyJ" "$redacted"; then
   fail "redaction kept a bearer token"
 fi
 
+stub="${work}/bin"
+mkdir -p "$stub"
+cat > "${stub}/qrencode" <<'EOF'
+#!/bin/sh
+out=""
+prev=""
+for arg in "$@"; do
+  if [ "$prev" = "-o" ]; then
+    out="$arg"
+  fi
+  prev="$arg"
+done
+printf '%s\n' '<svg xmlns="http://www.w3.org/2000/svg"></svg>' > "$out"
+EOF
+chmod 0755 "${stub}/qrencode"
+PATH="${stub}:${PATH}" grok_write_qr "https://example.test/login"
+[[ -s "${GROKBOT_STATE_DIR}/qr.svg" ]] || fail "qr was not written"
+grep -q '<svg' "${GROKBOT_STATE_DIR}/qr.svg" || fail "qr file is empty"
+
+export GROKBOT_OPTIONS_FILE="${work}/options.json"
+printf '%s\n' '{"log_level":"warning"}' > "$GROKBOT_OPTIONS_FILE"
+grok_forwards_client_log && fail "warning forwards the client log"
+printf '%s\n' '{"log_level":"debug"}' > "$GROKBOT_OPTIONS_FILE"
+grok_forwards_client_log || fail "debug does not forward the client log"
+[[ "$(grok_normalize_log_level "$(grok_option log_level info)")" == "debug" ]] || fail "debug level"
+
 printf '%s\n' "login tests passed"

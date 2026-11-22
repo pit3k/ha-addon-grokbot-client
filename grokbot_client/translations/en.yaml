@@ -14,3 +14,8 @@ configuration:
     description: >-
       On startup, download a newer grokbot-tunnel release when one is
       published. A failed download keeps the last client that ran.
+  log_level:
+    name: Log level
+    description: >-
+      Debug shows every request, including the raw request from grokbot-tunnel.
+      Info shows the normal client log. Warning and error show problems only.
