@@ -6,7 +6,7 @@ The client is an independent project. It is not affiliated with or endorsed by x
 
 ## Install
 
-1. Add this repository to Home Assistant. Use the badge in the repository README, or go to **Settings → Apps → Add-on store → ⋮ → Repositories** and paste:
+1. Add this repository to Home Assistant. Use the badge in the repository README, or go to **Settings → Apps → App store → ⋮ → Repositories** and paste:
 
    `https://github.com/pit3k/ha-addon-grokbot-client`
 
