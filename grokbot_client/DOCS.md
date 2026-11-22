@@ -63,8 +63,6 @@ Inside the container:
 
 Commands run as root in this container. File tools are allowed anywhere under `/`. A shell command is not limited to one directory: it can read anything the container can read, including the login files under `/data/.grok/bot-tunnel`.
 
-Do not print the login files or copy them into a chat. Do not log access tokens, refresh tokens, or the contents of `auth.json`.
-
 ## Approvals
 
 On the page, before or during sign-in, the execution policy says what this computer may do. **Always allow** is selected. You can change it. The choice applies only to this sign-in. The first `connect` after that sign-in runs with `--permission always`, `--permission ask`, or `--permission never`. Later starts, including a restart of the app, run `connect` without `--permission`, so they keep whatever is set in Grok Bot.
