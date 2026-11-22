@@ -252,8 +252,9 @@ static int status_is_signed_in(void) {
 
 static void serve_qr(int fd) {
   char path[PATH_MAX];
-  char buf[65536];
   int file;
+  struct stat st;
+  char *buf;
   size_t got = 0;
 
   if (snprintf(path, sizeof path, "%s/qr.svg", state_dir) >= (int)sizeof path) {
@@ -265,15 +266,26 @@ static void serve_qr(int fd) {
     respond(fd, 404, "Not Found", "text/plain; charset=utf-8", "not found\n", 10);
     return;
   }
-  while (got < sizeof buf) {
-    ssize_t n = read(file, buf + got, sizeof buf - got);
+  /* A real sign-in URL makes an SVG larger than 64 KiB. Sending a short
+   * buffer cuts the file mid-tag and the browser shows a broken image. */
+  if (fstat(file, &st) != 0 || !S_ISREG(st.st_mode) || st.st_size <= 0 || st.st_size > MAX_FILE) {
+    close(file);
+    respond(fd, 404, "Not Found", "text/plain; charset=utf-8", "not found\n", 10);
+    return;
+  }
+  buf = malloc((size_t)st.st_size);
+  if (buf == NULL) {
+    close(file);
+    respond(fd, 500, "Error", "text/plain; charset=utf-8", "error\n", 6);
+    return;
+  }
+  while (got < (size_t)st.st_size) {
+    ssize_t n = read(file, buf + got, (size_t)st.st_size - got);
     if (n < 0) {
       if (errno == EINTR) {
         continue;
       }
-      close(file);
-      respond(fd, 404, "Not Found", "text/plain; charset=utf-8", "not found\n", 10);
-      return;
+      break;
     }
     if (n == 0) {
       break;
@@ -281,11 +293,13 @@ static void serve_qr(int fd) {
     got += (size_t)n;
   }
   close(file);
-  if (got == 0) {
+  if (got != (size_t)st.st_size) {
+    free(buf);
     respond(fd, 404, "Not Found", "text/plain; charset=utf-8", "not found\n", 10);
     return;
   }
   respond(fd, 200, "OK", "image/svg+xml", buf, got);
+  free(buf);
 }
 
 static int write_control(const char *command) {

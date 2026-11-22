@@ -5,6 +5,7 @@
   var accountEl = document.getElementById("account");
   var link = document.getElementById("signin-link");
   var qr = document.getElementById("qr");
+  var row = document.getElementById("link-row");
   var urlInput = document.getElementById("login-url");
   var copy = document.getElementById("copy");
   var signout = document.getElementById("signout");
@@ -39,8 +40,7 @@
     show(accountEl, connected && Boolean(data.email));
     show(link, waiting);
     show(qr, waiting);
-    show(urlInput, waiting);
-    show(copy, waiting);
+    show(row, waiting);
     show(signout, connected);
     if (!waiting) {
       clearTimeout(qrTimer);

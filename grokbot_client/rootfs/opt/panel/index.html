@@ -12,8 +12,15 @@
     <p id="account" hidden></p>
     <img id="qr" alt="Sign-in QR code" width="200" height="200" hidden>
     <a id="signin-link" class="button" hidden target="_blank" rel="noopener noreferrer">Click to sign in</a>
-    <input id="login-url" type="text" readonly spellcheck="false" hidden>
-    <button id="copy" type="button" hidden>Copy</button>
+    <div id="link-row" hidden>
+      <input id="login-url" type="text" readonly spellcheck="false">
+      <button id="copy" type="button" aria-label="Copy">
+        <svg width="16" height="16" viewBox="0 0 16 16" aria-hidden="true">
+          <rect x="5" y="1" width="9" height="11" rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/>
+          <rect x="2" y="4" width="9" height="11" rx="1" fill="none" stroke="currentColor" stroke-width="1.4"/>
+        </svg>
+      </button>
+    </div>
     <button id="signout" type="button" hidden>Sign out</button>
   </main>
   <script src="app.js"></script>

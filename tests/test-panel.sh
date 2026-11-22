@@ -55,7 +55,8 @@ page=$(curl -fsS "http://127.0.0.1:${port}/")
 grep -q "Grok Bot client" <<<"$page" || fail "page title missing"
 grep -q 'id="signout"[^>]*hidden' <<<"$page" || fail "Sign out starts visible"
 grep -q 'Click to sign in' <<<"$page" || fail "sign-in link missing"
-grep -q 'id="copy"[^>]*hidden' <<<"$page" || fail "Copy starts visible"
+grep -q 'id="link-row"[^>]*hidden' <<<"$page" || fail "link row starts visible"
+grep -q 'aria-label="Copy"' <<<"$page" || fail "copy icon missing"
 buttons=$(grep -c '<button' <<<"$page")
 [[ "$buttons" == "2" ]] || fail "expected two buttons, found ${buttons}"
 css=$(curl -fsS "http://127.0.0.1:${port}/style.css")
@@ -84,6 +85,12 @@ code=$(curl -s -o /dev/null -w '%{http_code}' "http://127.0.0.1:${port}/qr.svg")
 printf '%s\n' '<svg xmlns="http://www.w3.org/2000/svg" id="again"></svg>' > "${GROKBOT_STATE_DIR}/qr.svg"
 body=$(curl -fsS "http://127.0.0.1:${port}/qr.svg?t=2")
 grep -q 'id="again"' <<<"$body" || fail "qr was not served again"
+python3 -c 'import os; p=os.environ["GROKBOT_STATE_DIR"]+"/qr.svg"; open(p,"w").write("<svg xmlns=\"http://www.w3.org/2000/svg\">"+"x"*70000+"</svg>\n")'
+size=$(wc -c < "${GROKBOT_STATE_DIR}/qr.svg" | tr -d '[:space:]')
+served=$(curl -fsS -o "${work}/qr-big.svg" -w '%{size_download}' "http://127.0.0.1:${port}/qr.svg")
+[[ "$size" -gt 65536 ]] || fail "fixture was not larger than 64 KiB"
+[[ "$served" == "$size" ]] || fail "large qr truncated ${served} != ${size}"
+grep -q '</svg>' "${work}/qr-big.svg" || fail "large qr was cut off"
 
 status=$(curl -fsS "http://127.0.0.1:${port}/api/status")
 [[ "$(jq -r '.status' <<<"$status")" == "Waiting for sign-in" ]] || fail "status payload"

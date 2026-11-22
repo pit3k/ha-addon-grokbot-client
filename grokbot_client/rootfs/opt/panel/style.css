@@ -17,11 +17,14 @@ main {
   padding: 20px;
   border-radius: 16px;
   background: #f7f6f3;
+  text-align: center;
 }
 
 #status { margin: 0 0 12px; font-size: 1.25rem; font-weight: 650; }
 #account { margin: 0 0 12px; }
-#qr { display: block; width: 200px; height: auto; margin: 0 0 12px; background: #fff; }
+#qr { display: block; width: 200px; height: auto; margin: 0 auto 12px; background: #fff; }
+
+#link-row { display: flex; align-items: center; gap: 6px; text-align: left; }
 
 a.button, button {
   display: inline-block;
@@ -36,12 +39,26 @@ a.button, button {
   cursor: pointer;
 }
 
-#copy, #signout { background: transparent; color: inherit; border: 1px solid #8a867c; }
+#signout { background: transparent; color: inherit; border: 1px solid #8a867c; }
+
+#copy {
+  flex: none;
+  width: 32px;
+  height: 32px;
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  border: 1px solid #8a867c;
+  line-height: 0;
+}
 
 input {
   box-sizing: border-box;
-  width: 100%;
-  margin: 0 0 8px;
+  flex: 1;
+  width: auto;
+  min-width: 0;
+  margin: 0;
   padding: 8px;
   border: 1px solid #c9c4ba;
   border-radius: 8px;
