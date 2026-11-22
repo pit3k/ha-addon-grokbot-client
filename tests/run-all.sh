@@ -11,7 +11,6 @@ fi
 
 shellcheck -s bash -S warning \
   grokbot_client/rootfs/usr/lib/grokbot/run.sh \
-  grokbot_client/rootfs/etc/s6-overlay/s6-rc.d/init-grokbot/run \
   grokbot_client/rootfs/etc/s6-overlay/s6-rc.d/grokbot/run \
   grokbot_client/rootfs/etc/s6-overlay/s6-rc.d/grokbot/finish \
   grokbot_client/rootfs/etc/s6-overlay/s6-rc.d/panel/run \

@@ -25,7 +25,6 @@ COPY rootfs /
 
 RUN chmod 0755 \
         /usr/lib/grokbot/run.sh \
-        /etc/s6-overlay/s6-rc.d/init-grokbot/run \
         /etc/s6-overlay/s6-rc.d/grokbot/run \
         /etc/s6-overlay/s6-rc.d/grokbot/finish \
         /etc/s6-overlay/s6-rc.d/panel/run \
