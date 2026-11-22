@@ -41,7 +41,7 @@ LABEL \
     org.opencontainers.image.title="Grok Bot client" \
     org.opencontainers.image.description="Home Assistant app that runs grokbot-tunnel" \
     org.opencontainers.image.source="https://github.com/pit3k/ha-addon-grokbot-client" \
-    org.opencontainers.image.licenses="Apache-2.0"
+    org.opencontainers.image.licenses="MIT"
 
 ENV HOME=/data \
     SHELL=/bin/bash \
