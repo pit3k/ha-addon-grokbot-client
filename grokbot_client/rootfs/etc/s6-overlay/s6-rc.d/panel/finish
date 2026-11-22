@@ -1,0 +1,5 @@
+#!/command/with-contenv bashio
+if [[ "${1}" -eq 0 || "${1}" -eq 256 ]]; then
+  exit 0
+fi
+sleep 2

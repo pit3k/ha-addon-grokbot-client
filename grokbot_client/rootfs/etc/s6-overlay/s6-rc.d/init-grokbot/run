@@ -1,0 +1,28 @@
+#!/command/with-contenv bashio
+# Prepare directories and a stable machine id before the client starts.
+set -euo pipefail
+
+mkdir -p /data/.local/bin /data/.grok /run/grokbot
+chmod 700 /data/.grok
+
+if [[ ! -s /data/.grok/host-id ]]; then
+  if id=$(cat /proc/sys/kernel/random/uuid 2>/dev/null); then
+    printf '%s\n' "${id//-/}" > /data/.grok/host-id
+  fi
+fi
+
+if [[ -s /data/.grok/host-id ]]; then
+  tr -cd '0-9a-f' < /data/.grok/host-id | head -c 32 > /etc/machine-id.tmp || true
+  if [[ -s /etc/machine-id.tmp ]]; then
+    printf '\n' >> /etc/machine-id.tmp
+    mv /etc/machine-id.tmp /etc/machine-id || true
+  fi
+fi
+rm -f /etc/machine-id.tmp
+
+export HOME=/data
+if command -v git >/dev/null 2>&1; then
+  if ! git config --global --get-all safe.directory 2>/dev/null | grep -qx '\*'; then
+    git config --global --add safe.directory '*' || true
+  fi
+fi

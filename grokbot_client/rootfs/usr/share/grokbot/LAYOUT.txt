@@ -1,0 +1,20 @@
+Paths inside this Home Assistant app:
+
+  /homeassistant   Home Assistant configuration (read-write)
+  /app_configs     Public configuration of every app (read-write)
+  /share           Files shared between Home Assistant and apps (read-write)
+  /backup          Backups (read-write)
+  /ssl             Certificates (read-only)
+  /data            Private data for this app, including the Grok Bot login
+
+The ha command talks to the Supervisor. This app's role is manager: it can
+inspect and change apps, update them, and restart Home Assistant Core. It
+can also call the Home Assistant API. It has no Docker socket, it is not
+privileged, and it does not join the host network.
+
+Commands run as root inside this container. File tools can see the whole
+container filesystem, including /data/.grok/bot-tunnel, where the login is
+stored. Do not print those files or copy them into chat. A command is not
+sandboxed to one directory.
+
+Do not log access tokens, refresh tokens, or the contents of auth.json.

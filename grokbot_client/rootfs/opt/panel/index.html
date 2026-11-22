@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Grok Bot client</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main>
+    <p class="eyebrow">Home Assistant</p>
+    <h1>Grok Bot client</h1>
+    <p id="status" class="status" data-state="starting" role="status">Not signed in</p>
+    <p id="account" class="account" hidden></p>
+    <section id="signin-block" class="signin" hidden>
+      <a id="signin-link" class="button primary" target="_blank" rel="noopener noreferrer">Sign in</a>
+      <p class="hint">Open the sign-in page, or scan the code with a phone.</p>
+      <div id="qr" class="qr" hidden></div>
+      <label class="url-label" for="login-url">Sign-in link</label>
+      <input id="login-url" class="url" type="url" readonly spellcheck="false">
+    </section>
+    <div class="actions">
+      <button id="signin-start" class="button primary" type="button">Sign in</button>
+      <button id="signout" class="button ghost" type="button" hidden>Sign out / re-link</button>
+    </div>
+    <p id="detail" class="detail" hidden></p>
+    <p id="error" class="error" role="alert" hidden></p>
+    <p id="version" class="version"></p>
+  </main>
+  <script src="qrcode.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

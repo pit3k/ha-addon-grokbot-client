@@ -1,0 +1,8 @@
+#!/command/with-contenv bashio
+# s6 restarts this service. Back off after a crash. A signal (shutdown or
+# an intentional stop) restarts immediately.
+if [[ "${1}" -eq 0 || "${1}" -eq 256 ]]; then
+  exit 0
+fi
+bashio::log.warning "Grok Bot client service exited with code ${1}. Starting it again in 10 seconds."
+sleep 10
