@@ -65,21 +65,21 @@ jobs:
           EVENT: ${{ github.event_name }}
           REF: ${{ github.ref }}
           ARCH: ${{ matrix.arch }}
-          VERSION: ${{ steps.version.outputs.version }}
         run: |
-          image="ghcr.io/pit3k/${ARCH}-addon-grokbot-client"
-          echo "image=${image}" >> "$GITHUB_OUTPUT"
-          if [[ "$EVENT" != "push" || "$REF" != "refs/heads/main" ]]; then
-            echo "push=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
-          if docker buildx imagetools inspect "${image}:${VERSION}" >/dev/null 2>&1; then
-            echo "::warning::${image}:${VERSION} already exists and will not be replaced. Bump version in grokbot_client/config.yaml to publish a new image."
-            echo "push=false" >> "$GITHUB_OUTPUT"
-          else
+          echo "image=ghcr.io/pit3k/${ARCH}-addon-grokbot-client" >> "$GITHUB_OUTPUT"
+          if [[ "$EVENT" == "push" && "$REF" == "refs/heads/main" ]]; then
             echo "push=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "push=false" >> "$GITHUB_OUTPUT"
           fi
+
+      - name: Log in to GHCR
+        if: steps.publish.outputs.push == 'true'
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build for the smoke test
         if: matrix.arch == 'amd64'
@@ -102,7 +102,7 @@ jobs:
         run: GROKBOT_IMAGE=grokbot-client:test tests/smoke.sh
 
       - name: Build this architecture
-        if: matrix.arch != 'amd64' && steps.publish.outputs.push != 'true'
+        if: matrix.arch != 'amd64' || steps.publish.outputs.push == 'true'
         uses: docker/build-push-action@v6
         with:
           context: grokbot_client
@@ -110,36 +110,10 @@ jobs:
           platforms: ${{ matrix.platform }}
           provenance: false
           sbom: false
-          push: false
-          outputs: type=oci,dest=/tmp/grokbot-${{ matrix.arch }}.tar
-          build-args: |
-            BUILD_ARCH=${{ matrix.arch }}
-            BUILD_VERSION=${{ steps.version.outputs.version }}
-          tags: ${{ steps.publish.outputs.image }}:${{ steps.version.outputs.version }}
-
-      - name: Publish this architecture
-        if: steps.publish.outputs.push == 'true'
-        uses: docker/build-push-action@v6
-        with:
-          context: grokbot_client
-          file: grokbot_client/Dockerfile
-          platforms: ${{ matrix.platform }}
-          provenance: false
-          sbom: false
-          push: true
+          push: ${{ steps.publish.outputs.push == 'true' }}
           build-args: |
             BUILD_ARCH=${{ matrix.arch }}
             BUILD_VERSION=${{ steps.version.outputs.version }}
           tags: |
             ${{ steps.publish.outputs.image }}:${{ steps.version.outputs.version }}
             ${{ steps.publish.outputs.image }}:latest
-
-      - name: Make the published package public
-        if: steps.publish.outputs.push == 'true'
-        continue-on-error: true
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          gh api --method PATCH \
-            "/user/packages/container/${{ matrix.arch }}-addon-grokbot-client" \
-            -f visibility=public
