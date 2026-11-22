@@ -1,10 +1,12 @@
 Paths inside this Home Assistant app:
 
   /homeassistant   Home Assistant configuration (read-write)
-  /app_configs     Public configuration of every app (read-write)
-  /share           Files shared between Home Assistant and apps (read-write)
-  /backup          Backups (read-write)
-  /ssl             Certificates (read-only)
+  /config          This app's own public configuration folder, visible in other apps like Code Editor (read-write)
+  /app_configs     Public configuration of every app (read-only)
+  /share           read-write
+  /media           read-write
+  /local_apps      Local apps folder, for developing and testing apps (read-write)
+  /backup          read-only
   /data            Private data for this app, including the Grok Bot login
 
 The ha command talks to the Supervisor. This app's role is manager: it can

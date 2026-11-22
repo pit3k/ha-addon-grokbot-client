@@ -48,10 +48,12 @@ Inside the container:
 | Path | Access | Contents |
 | --- | --- | --- |
 | `/homeassistant` | read-write | Home Assistant configuration |
-| `/app_configs` | read-write | Public configuration of every app |
+| `/config` | read-write | This app's own public configuration folder, visible in other apps like Code Editor |
+| `/app_configs` | read-only | Public configuration of every app |
 | `/share` | read-write | Shared files |
-| `/backup` | read-write | Backups |
-| `/ssl` | read-only | Certificates |
+| `/media` | read-write | Media files |
+| `/local_apps` | read-write | Local apps folder, for developing and testing apps |
+| `/backup` | read-only | Backups |
 | `/data` | read-write | This app's data, including the login |
 
 `ha` talks to the Supervisor. The app's role is **manager**, so it can install, start, stop, and update apps, and restart Home Assistant Core. The Home Assistant API is enabled as well, through `http://supervisor/core/api`.
