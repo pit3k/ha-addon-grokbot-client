@@ -66,11 +66,16 @@ grep -q '^D:\*$' "$conf" || fail "other addresses are not denied"
 page=$(curl -fsS "http://127.0.0.1:${port}/")
 grep -q "Grok Bot client" <<<"$page" || fail "page title missing"
 grep -q 'id="signout"[^>]*hidden' <<<"$page" || fail "Sign out starts visible"
-grep -q 'id="permission"[^>]*hidden' <<<"$page" || fail "permission choice starts visible"
+grep -q 'id="permission"' <<<"$page" || fail "permission choice missing"
+if grep -q 'id="permission"[^>]*hidden' <<<"$page"; then
+  fail "permission choice starts hidden"
+fi
 grep -q 'Always allow' <<<"$page" || fail "Always allow missing"
 grep -q 'Ask every time' <<<"$page" || fail "Ask every time missing"
 grep -q 'Never allow' <<<"$page" || fail "Never allow missing"
-grep -q 'value="always" checked' <<<"$page" || fail "Always allow is not preselected"
+if grep -q 'checked' <<<"$page"; then
+  fail "a permission starts selected"
+fi
 grep -q 'Click to sign in' <<<"$page" || fail "sign-in link missing"
 grep -q 'id="link-row"[^>]*hidden' <<<"$page" || fail "link row starts visible"
 grep -q 'aria-label="Copy"' <<<"$page" || fail "copy icon missing"
@@ -82,7 +87,7 @@ grep -q 'display: none !important' <<<"$css" || fail "hidden does not override d
 grep -q 'prefers-color-scheme: dark' <<<"$css" || fail "dark scheme missing"
 js=$(curl -fsS "http://127.0.0.1:${port}/app.js")
 grep -q 'show(signout, connected)' <<<"$js" || fail "Sign out is not limited to connected"
-grep -q 'show(permission, waiting)' <<<"$js" || fail "permission choice is not limited to sign-in"
+grep -q 'show(permission, !connected)' <<<"$js" || fail "permission choice is not shown before sign-in"
 grep -q 'cgi-bin/permission' <<<"$js" || fail "permission URL missing"
 grep -q 'addEventListener("error"' <<<"$js" || fail "QR load is not retried"
 grep -q 'cgi-bin/status' <<<"$js" || fail "status URL missing"
@@ -116,7 +121,7 @@ grep -q '</svg>' "${work}/qr-big.svg" || fail "large qr was cut off"
 status=$(curl -fsS "http://127.0.0.1:${port}/cgi-bin/status")
 [[ "$(jq -r '.status' <<<"$status")" == "Waiting for sign-in" ]] || fail "status payload"
 [[ "$(jq -r '.login_url' <<<"$status")" == https://example.test/* ]] || fail "status url"
-[[ "$(jq -r '.permission' <<<"$status")" == "always" ]] || fail "default permission"
+[[ "$(jq -r '.permission' <<<"$status")" == "" ]] || fail "unset permission was $(jq -r '.permission' <<<"$status")"
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST --data 'ask' "http://127.0.0.1:${port}/cgi-bin/permission")
 [[ "$code" == "403" ]] || fail "permission without the panel header was ${code}"
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \

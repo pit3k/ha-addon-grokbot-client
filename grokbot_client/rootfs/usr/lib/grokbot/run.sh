@@ -27,11 +27,11 @@ ensure() {
 
 signed() { jq -e '(.refresh_token|type)=="string" and (.refresh_token|length)>0' "$store/auth.json" >/dev/null 2>&1; }
 
-# The sign-in page writes this. Only the connect that follows that sign-in reads it.
+# The sign-in page writes this. Empty means the page saved nothing.
 chosen() {
   local p f=${GROKBOT_PERMISSION_FILE:-$HOME/permission}
   p=$( [ -f "$f" ] && tr -d '[:space:]' <"$f" || true )
-  case $p in always|ask|never) printf '%s\n' "$p" ;; *) printf '%s\n' always ;; esac
+  case $p in always|ask|never) printf '%s\n' "$p" ;; esac
 }
 
 show_link() {
@@ -69,9 +69,12 @@ main() {
   email=$(jq -r 'if (.email|type)=="string" then .email else "" end' "$store/auth.json" 2>/dev/null || true)
   jq -n --arg l "$label" --arg e "$email" '{state:"connected",status:("Connected as "+$l),login_url:"",error:"",detail:"",version:"",email:$e,label:$l}' >"$state/status.json"
   set -- connect --label "$label" --root /
-  # --permission is set once, on the connect that follows sign-in.
+  # A saved choice is sent once, on the connect that follows sign-in.
   if [ "$first" = 1 ]; then
-    set -- "$@" --permission "$(chosen)"
+    perm=$(chosen)
+    if [ -n "$perm" ]; then
+      set -- "$@" --permission "$perm"
+    fi
   fi
   if [ "$level" = debug ]; then
     set -- "$@" --debug

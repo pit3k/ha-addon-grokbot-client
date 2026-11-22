@@ -43,20 +43,23 @@
     show(link, waiting);
     show(qr, waiting);
     show(row, waiting);
-    show(permission, waiting);
+    show(permission, !connected);
     show(signout, connected);
+    if (!connected && !permissionSet) {
+      var inputs = permission.querySelectorAll("input");
+      var i;
+      for (i = 0; i < inputs.length; i++) {
+        inputs[i].checked = inputs[i].value === (data.permission || "");
+      }
+      permissionSet = true;
+    }
+    if (connected) {
+      permissionSet = false;
+    }
     if (!waiting) {
       clearTimeout(qrTimer);
       wasWaiting = false;
-      permissionSet = false;
       return;
-    }
-    if (!permissionSet) {
-      var chosen = permission.querySelector('input[value="' + (data.permission || "always") + '"]');
-      if (chosen) {
-        chosen.checked = true;
-      }
-      permissionSet = true;
     }
     link.href = url;
     urlInput.value = url;
@@ -82,6 +85,7 @@
     document.execCommand("copy");
   });
   permission.addEventListener("change", function (event) {
+    permissionSet = true;
     fetch("cgi-bin/permission", {
       method: "POST",
       headers: { "X-Grokbot-Panel": "1" },

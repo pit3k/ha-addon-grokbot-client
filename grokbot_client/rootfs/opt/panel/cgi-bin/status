@@ -7,7 +7,7 @@ name=${SCRIPT_NAME##*/}
 
 saved() {
   p=$( [ -f "$perm" ] && tr -d '[:space:]' <"$perm" || true )
-  case $p in always|ask|never) ;; *) p=always ;; esac
+  case $p in always|ask|never) ;; *) p= ;; esac
   printf '%s' "$p"
 }
 

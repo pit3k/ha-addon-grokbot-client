@@ -14,7 +14,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-unset GROKBOT_STORE
+unset GROKBOT_STORE GROKBOT_PERMISSION_FILE
 export GROKBOT_HOME="${work}/home"
 export HOME="$GROKBOT_HOME"
 export GROKBOT_STATE_DIR="${work}/run"
@@ -67,10 +67,13 @@ wait_for() {
   return 1
 }
 
+rm -f "${GROKBOT_HOME}/permission"
 write_options info
 start_run
 wait_for "$GROKBOT_ARGS_FILE" || fail "info run did not connect"
-grep -q -- '--permission always' "$GROKBOT_ARGS_FILE" || fail "first sign-in did not pass always"
+if grep -q -- '--permission' "$GROKBOT_ARGS_FILE"; then
+  fail "first sign-in with no saved choice passed --permission"
+fi
 grep -q -- '--label homeassistant' "$GROKBOT_ARGS_FILE" || fail "label was not passed"
 grep -q -- '--root /' "$GROKBOT_ARGS_FILE" || fail "root was not passed"
 if grep -q -- '--debug' "$GROKBOT_ARGS_FILE"; then
@@ -93,7 +96,9 @@ printf '%s\n' maybe > "${GROKBOT_HOME}/permission"
 write_options warning
 start_run
 wait_for "$GROKBOT_ARGS_FILE" || fail "warning run did not connect"
-grep -q -- '--permission always' "$GROKBOT_ARGS_FILE" || fail "bad choice was not treated as always"
+if grep -q -- '--permission' "$GROKBOT_ARGS_FILE"; then
+  fail "a bad choice passed --permission"
+fi
 if grep -q -- '--debug' "$GROKBOT_ARGS_FILE"; then
   fail "warning passed --debug"
 fi

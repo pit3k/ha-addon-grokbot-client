@@ -61,7 +61,7 @@ for _ in $(seq 1 40); do
   sleep 0.5
 done
 [[ "$(jq -r '.status' <<<"$status")" == "Waiting for sign-in" ]] || fail "status did not show a missing login: $status"
-[[ "$(jq -r '.permission' <<<"$status")" == "always" ]] || fail "default permission: $status"
+[[ "$(jq -r '.permission' <<<"$status")" == "" ]] || fail "unset permission: $status"
 grep -q 'Always allow' <<<"$page" || fail "permission choice missing"
 code=$(docker exec "$name" curl -s -o /dev/null -w '%{http_code}' -X POST \
   -H "X-Grokbot-Panel: 1" --data 'ask' \
