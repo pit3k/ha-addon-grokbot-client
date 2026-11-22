@@ -49,7 +49,7 @@
       var inputs = permission.querySelectorAll("input");
       var i;
       for (i = 0; i < inputs.length; i++) {
-        inputs[i].checked = inputs[i].value === (data.permission || "");
+        inputs[i].checked = inputs[i].value === (data.permission || "always");
       }
       permissionSet = true;
     }

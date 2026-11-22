@@ -70,12 +70,11 @@ grep -q 'id="permission"' <<<"$page" || fail "permission choice missing"
 if grep -q 'id="permission"[^>]*hidden' <<<"$page"; then
   fail "permission choice starts hidden"
 fi
+grep -q 'Execution policy' <<<"$page" || fail "execution policy label missing"
 grep -q 'Always allow' <<<"$page" || fail "Always allow missing"
 grep -q 'Ask every time' <<<"$page" || fail "Ask every time missing"
 grep -q 'Never allow' <<<"$page" || fail "Never allow missing"
-if grep -q 'checked' <<<"$page"; then
-  fail "a permission starts selected"
-fi
+grep -q 'value="always" checked' <<<"$page" || fail "Always allow is not preselected"
 grep -q 'Click to sign in' <<<"$page" || fail "sign-in link missing"
 grep -q 'id="link-row"[^>]*hidden' <<<"$page" || fail "link row starts visible"
 grep -q 'aria-label="Copy"' <<<"$page" || fail "copy icon missing"
@@ -121,7 +120,7 @@ grep -q '</svg>' "${work}/qr-big.svg" || fail "large qr was cut off"
 status=$(curl -fsS "http://127.0.0.1:${port}/cgi-bin/status")
 [[ "$(jq -r '.status' <<<"$status")" == "Waiting for sign-in" ]] || fail "status payload"
 [[ "$(jq -r '.login_url' <<<"$status")" == https://example.test/* ]] || fail "status url"
-[[ "$(jq -r '.permission' <<<"$status")" == "" ]] || fail "unset permission was $(jq -r '.permission' <<<"$status")"
+[[ "$(jq -r '.permission' <<<"$status")" == "always" ]] || fail "default permission was $(jq -r '.permission' <<<"$status")"
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST --data 'ask' "http://127.0.0.1:${port}/cgi-bin/permission")
 [[ "$code" == "403" ]] || fail "permission without the panel header was ${code}"
 code=$(curl -s -o /dev/null -w '%{http_code}' -X POST \

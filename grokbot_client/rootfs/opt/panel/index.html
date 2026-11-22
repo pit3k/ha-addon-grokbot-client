@@ -10,11 +10,11 @@
   <main>
     <p id="status" role="status">Starting</p>
     <fieldset id="permission">
-      <legend>Permission</legend>
-      <label><input type="radio" name="permission" value="always"> Always allow</label>
+      <legend>Execution policy</legend>
+      <label><input type="radio" name="permission" value="always" checked> Always allow</label>
       <label><input type="radio" name="permission" value="ask"> Ask every time</label>
       <label><input type="radio" name="permission" value="never"> Never allow</label>
-      <p>Leave this unset to use Grok Bot's default, Ask every time. A choice applies only to this sign-in. Change it later in Grok Bot under Settings → Computer. Restarting the app keeps that setting. Sign out and sign in again to pick again.</p>
+      <p>This applies only to this sign-in. Change it later in Grok Bot under Settings → Computer. Restarting the app keeps that setting. Sign out and sign in again to pick again.</p>
     </fieldset>
     <p id="account" hidden></p>
     <img id="qr" alt="Sign-in QR code" width="200" height="200" hidden>

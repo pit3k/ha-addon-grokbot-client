@@ -71,9 +71,7 @@ rm -f "${GROKBOT_HOME}/permission"
 write_options info
 start_run
 wait_for "$GROKBOT_ARGS_FILE" || fail "info run did not connect"
-if grep -q -- '--permission' "$GROKBOT_ARGS_FILE"; then
-  fail "first sign-in with no saved choice passed --permission"
-fi
+grep -q -- '--permission always' "$GROKBOT_ARGS_FILE" || fail "first sign-in did not pass always"
 grep -q -- '--label homeassistant' "$GROKBOT_ARGS_FILE" || fail "label was not passed"
 grep -q -- '--root /' "$GROKBOT_ARGS_FILE" || fail "root was not passed"
 if grep -q -- '--debug' "$GROKBOT_ARGS_FILE"; then
@@ -96,9 +94,7 @@ printf '%s\n' maybe > "${GROKBOT_HOME}/permission"
 write_options warning
 start_run
 wait_for "$GROKBOT_ARGS_FILE" || fail "warning run did not connect"
-if grep -q -- '--permission' "$GROKBOT_ARGS_FILE"; then
-  fail "a bad choice passed --permission"
-fi
+grep -q -- '--permission always' "$GROKBOT_ARGS_FILE" || fail "a bad choice was not treated as always"
 if grep -q -- '--debug' "$GROKBOT_ARGS_FILE"; then
   fail "warning passed --debug"
 fi
