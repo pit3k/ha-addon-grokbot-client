@@ -19,12 +19,14 @@ map:
   - type: homeassistant_config
     read_only: false
   - type: all_app_configs
+    read_only: true
+  - type: app_config
     read_only: false
   - type: share
     read_only: false
-  - type: backup
+  - type: media
     read_only: false
-  - type: ssl
+  - type: backup
     read_only: true
 options:
   permission: always

@@ -34,7 +34,7 @@ On startup the app downloads the latest grokbot-tunnel release, verifies `checks
 
 ## Security, short version
 
-The Supervisor role is **manager**. The agent can restart and update apps and Home Assistant Core, and it can call the Core API. Mapped folders are `/homeassistant`, `/app_configs`, `/share`, and `/backup` (read-write) and `/ssl` (read-only). Commands run as root inside the app container, not as a privileged process on the host.
+The Supervisor role is **manager**. The agent can restart and update apps and Home Assistant Core, and it can call the Core API. Mapped folders are `/homeassistant`, `/config`, `/share`, and `/media` (read-write) and `/app_configs` and `/backup` (read-only). Commands run as root inside the app container, not as a privileged process on the host.
 
 ## Develop
 
