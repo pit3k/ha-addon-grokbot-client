@@ -44,7 +44,7 @@ stop_run() {
 }
 
 write_options() {
-  printf '%s\n' "{\"permission\":\"ask\",\"label\":\"homeassistant\",\"auto_update\":false,\"log_level\":\"${1}\"}" \
+  printf '%s\n' "{\"label\":\"homeassistant\",\"auto_update\":false,\"log_level\":\"${1}\"}" \
     > "$GROKBOT_OPTIONS_FILE"
 }
 
@@ -70,7 +70,9 @@ wait_for() {
 write_options info
 start_run
 wait_for "$GROKBOT_ARGS_FILE" || fail "info run did not connect"
-grep -q -- '--permission ask' "$GROKBOT_ARGS_FILE" || fail "permission was not passed"
+if grep -q -- '--permission' "$GROKBOT_ARGS_FILE"; then
+  fail "permission was passed"
+fi
 grep -q -- '--label homeassistant' "$GROKBOT_ARGS_FILE" || fail "label was not passed"
 grep -q -- '--root /' "$GROKBOT_ARGS_FILE" || fail "root was not passed"
 if grep -q -- '--debug' "$GROKBOT_ARGS_FILE"; then

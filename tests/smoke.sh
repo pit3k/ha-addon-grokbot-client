@@ -29,7 +29,7 @@ trap cleanup EXIT
 mkdir -p "${work}/data/.local/bin" "${work}/data/.grok"
 cp "${root}/tests/fixtures/fake-grokbot-tunnel" "${work}/data/.local/bin/grokbot-tunnel"
 chmod 0755 "${work}/data/.local/bin/grokbot-tunnel"
-printf '%s\n' '{"permission":"always","label":"ha","auto_update":false}' > "${work}/data/options.json"
+printf '%s\n' '{"label":"ha","auto_update":false}' > "${work}/data/options.json"
 
 docker run -d --name "$name" \
   -v "${work}/data:/data" \

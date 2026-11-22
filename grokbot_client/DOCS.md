@@ -30,16 +30,13 @@ While the page is waiting, it shows the status, the QR code, and the sign-in lin
 
 ## Options
 
-The app runs `grokbot-tunnel connect --permission <permission> --label <label> --root /`.
+The app runs `grokbot-tunnel connect --label <label> --root /`.
 
 | Option | Default | Meaning |
 | --- | --- | --- |
-| Permission | `always` | `always` runs every action the agent requests. `ask` runs only actions approved in Grok Bot. |
 | Computer name | `homeassistant` | Name of this system in Grok Bot, at most 100 characters. |
 | Update the client automatically | on | On startup, download a newer grokbot-tunnel release. A failed download keeps the last client that ran. |
 | Log level | `info` | `debug` runs the client with `--debug`, so it prints each raw request. The client's output goes to the app log as it is printed. |
-
-`ask` has no terminal in this app. An action that Grok Bot does not approve is refused. It does not wait for a keypress. With `always`, the agent runs commands without asking.
 
 Changing options restarts the app.
 
@@ -66,17 +63,13 @@ The same notes are in `/usr/share/grokbot/LAYOUT.txt` for the agent.
 
 ## Approvals
 
-Grok Bot checks every action an agent wants to run here, such as a command or a file change, before it sends the action to this app. When Grok Bot manages permissions for this computer, the app runs exactly the actions Grok Bot approved. The app log then says `Grok Bot manages permissions for this computer`.
+You choose the permission for this computer in Grok Bot, under **Settings → Computer**. The app does not change it. Grok Bot checks every action an agent wants to run here before it sends the action to this app, and the app runs exactly the actions Grok Bot approved.
 
-With `always`, the default:
+- **Always**: Auto-review in Grok Bot checks each action first. You set it up under **Settings → General → Auto-review** and **Auto-review rules**. An action that Auto-review blocks never reaches Home Assistant. The agent is told why and may ask you to approve it. The approval card appears in Grok Bot, in the chat of that agent. Every other action runs without asking.
+- **Ask every time**: Grok Bot shows an approval card in the agent's chat before each action. Nothing runs until you approve it.
+- **Never**: every action is refused.
 
-- Auto-review in Grok Bot checks each action first. You set it up in Grok Bot under **Settings → General → Auto-review** and **Auto-review rules**.
-- An action that Auto-review blocks never reaches Home Assistant. The agent is told why. It can then ask you to approve it. The approval card appears in Grok Bot, in the chat of the agent that asked, not in Home Assistant.
-- Every other action runs without asking.
-
-With `ask`, Grok Bot asks you in that agent's chat before each action, and nothing runs until you approve it. Home Assistant never asks you anything.
-
-The app sets this permission for the computer in Grok Bot (**Settings → Computer**) at every start. A change made there lasts until the app restarts. To keep a change, set **Permission** here. A team policy can keep a stricter setting.
+Home Assistant never asks you anything.
 
 ## Security
 

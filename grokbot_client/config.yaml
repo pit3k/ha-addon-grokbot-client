@@ -31,12 +31,10 @@ map:
   - type: backup
     read_only: true
 options:
-  permission: always
   label: homeassistant
   auto_update: true
   log_level: info
 schema:
-  permission: list(always|ask)
   label: str
   auto_update: bool
   log_level: list(debug|info|warning|error)

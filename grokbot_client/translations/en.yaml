@@ -1,11 +1,5 @@
 ---
 configuration:
-  permission:
-    name: Permission
-    description: >-
-      What the agent may run. Always runs every requested action. Ask runs
-      only actions approved in Grok Bot. This app has no terminal to approve
-      them on.
   label:
     name: Computer name
     description: Name of this system in Grok Bot. At most 100 characters.

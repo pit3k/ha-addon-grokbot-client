@@ -45,7 +45,7 @@ main() {
   opt=${GROKBOT_OPTIONS_FILE:-/data/options.json}
   mkdir -p "$(dirname "$bin")" "$store" "$state"
   chmod 700 "$store" || true
-  permission=$(jq -r '.permission' "$opt"); label=$(jq -r '.label' "$opt"); level=$(jq -r '.log_level' "$opt")
+  label=$(jq -r '.label' "$opt"); level=$(jq -r '.log_level' "$opt")
   ensure "$(jq -r '.auto_update' "$opt")" || exit 1
   if ! signed; then
     out=$state/login.out; : >"$out"; url=""; pid=0
@@ -60,7 +60,7 @@ main() {
   rm -f "$state/qr.svg"
   email=$(jq -r 'if (.email|type)=="string" then .email else "" end' "$store/auth.json" 2>/dev/null || true)
   jq -n --arg l "$label" --arg e "$email" '{state:"connected",status:("Connected as "+$l),login_url:"",error:"",detail:"",version:"",email:$e,label:$l}' >"$state/status.json"
-  set -- connect --permission "$permission" --label "$label" --root /
+  set -- connect --label "$label" --root /
   if [ "$level" = debug ]; then
     set -- "$@" --debug
   fi
